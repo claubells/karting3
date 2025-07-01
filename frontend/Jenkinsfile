@@ -1,0 +1,29 @@
+pipeline{
+    agent any
+    stages{
+        stage("Build Frontend"){
+            steps{
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/claubells/KartingRM1']])
+                dir("frontend-Karting"){
+                    bat "npm install"
+                    bat "npm run build"
+                }
+            }
+        }
+        stage("Build and Push Docker Image"){
+            steps{
+                dir("frontend-Karting"){
+                    script{
+                        withEnv(["DOCKER_CLI_EXPERIMENTAL=enabled"]) {
+                            bat """
+                            echo %DOCKER_PASSWORD% | docker login -u claubells --password-stdin
+                            docker build -t claubells/kartingrm-frontend .
+                            docker push claubells/kartingrm-frontend
+                            """
+                        }
+                    }                    
+                }
+            }
+        }
+    }
+}
