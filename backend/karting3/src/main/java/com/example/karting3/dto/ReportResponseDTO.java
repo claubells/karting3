@@ -10,5 +10,6 @@ import java.util.Map;
 @AllArgsConstructor
 public class ReportResponseDTO {
     private Map<Integer, Map<String, Integer>> turns;
-    private Map<String, Map<String, Integer>> people;
+    private Map<String, Integer> monthlyTotals;
+    int totalGlobal;
 }

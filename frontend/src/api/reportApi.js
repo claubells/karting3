@@ -10,13 +10,16 @@ export async function getReportByTurns() {
     }
 };
 
-export async function getReportByPeople() {
+export async function getReportByTurnsByMonth(anio, desde, hasta) {
     try {
-        const res = await httpClient.get('/people');
+        const res = await httpClient.get('/turns-month', {
+            params: { anio, desde, hasta }
+        });
         return res.data;
     } catch (error) {
-        console.error('Error al obtener los reportes por n de Personas:', error);
+        console.error('Error al obtener los reportes por Vueltas por Mes:', error);
         return [];
     }
 };
+
 

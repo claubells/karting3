@@ -2,46 +2,77 @@ import React from 'react';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
-import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
-import { getReportByTurns, getReportByPeople } from '../api/reportApi';
+import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
+import { getReportByTurnsByMonth } from '../api/reportApi';
 
 export default function Reports() {
     const [value, setValue] = React.useState('one');
-    const [reportData, setReportData] = React.useState({ // de enero a junio para los reportes
+    const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
+    const [selectedMonthFrom, setSelectedMonthFrom] = React.useState('01');
+    const [selectedMonthTo, setSelectedMonthTo] = React.useState('12');
+    const [reportData, setReportData] = React.useState({
         turns: {
-            10: { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0 },
-            15: { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0 },
-            20: { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0 },
+            10: {},
+            15: {},
+            20: {},
         },
-        people: {
-            '1-2': { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0 },
-            '3-5': { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0 },
-            '6-10': { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0, '06': 0 },
-            '11-15': { '01': 0, '02': 0, '03': 0, '04': 0, '05': 0 , '06': 0},
-        }
+        totalGlobal: 0,
+        monthlyTotals: {},
     });
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
 
-    React.useEffect(() => {
-        generateReport();
-    }, []);
+    const months = [
+        { value: '01', label: 'Enero' },
+        { value: '02', label: 'Febrero' },
+        { value: '03', label: 'Marzo' },
+        { value: '04', label: 'Abril' },
+        { value: '05', label: 'Mayo' },
+        { value: '06', label: 'Junio' },
+        { value: '07', label: 'Julio' },
+        { value: '08', label: 'Agosto' },
+        { value: '09', label: 'Septiembre' },
+        { value: '10', label: 'Octubre' },
+        { value: '11', label: 'Noviembre' },
+        { value: '12', label: 'Diciembre' },
+    ];
+
+    const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
     async function generateReport() {
         try {
-            const turns = await getReportByTurns();   // llama a /api/report/turns
-            const people = await getReportByPeople(); // llama a /api/report/people
+            const turns = await getReportByTurnsByMonth(selectedYear, selectedMonthFrom, selectedMonthTo);
 
             setReportData({
-            turns: turns.turns,     // extrae solo el objeto turns
-            people: people.people,  // extrae solo el objeto people
+                turns: turns.turns || {
+                    10: {},
+                    15: {},
+                    20: {},
+                },
+                totalGlobal: turns.totalGlobal ?? 0,
+                monthlyTotals: turns.monthlyTotals ?? {},
             });
         } catch (error) {
             console.error('Error al obtener datos del reporte:', error);
         }
     }
+
+    React.useEffect(() => {
+        generateReport();
+    }, [selectedYear, selectedMonthFrom, selectedMonthTo]);
+
+    const handleGenerateReport = () => {
+        generateReport();
+    };
+
+    // Función para obtener los meses en el rango seleccionado
+    const getMonthsInRange = () => {
+        const fromIndex = parseInt(selectedMonthFrom) - 1;
+        const toIndex = parseInt(selectedMonthTo) - 1;
+        return months.slice(fromIndex, toIndex + 1);
+    };
 
     return (
         <Box
@@ -55,122 +86,111 @@ export default function Reports() {
                 mt: 2,
                 ml: 2,
             }}
-        >
-            <Typography variant="h6" textAlign="left" sx={{ mb: 2 }}>
-                Reportes según:
-            </Typography>
+        >       
+            <Box mt={4} sx={{ width: '90%' }}>
+                <Typography variant="h5" sx={{ mb: 2 }}>
+                    Reporte de Ingresos por Vueltas o Tiempo
+                </Typography>
 
-            <Tabs
-                value={value}
-                onChange={handleChange}
-                textColor="secondary"
-                indicatorColor="secondary"
-                aria-label="secondary tabs example"
-            >
-                <Tab value="one" label="número de vueltas/tiempo" />
-                <Tab value="two" label="número de personas" />
-            </Tabs>
+                {/* Controles de selección */}
+                <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+                    <FormControl sx={{ minWidth: 120 }}>
+                        <InputLabel>Año</InputLabel>
+                        <Select
+                            value={selectedYear}
+                            label="Año"
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                        >
+                            {years.map((year) => (
+                                <MenuItem key={year} value={year}>
+                                    {year}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
 
-            {value === 'one' && (
-                <Box mt={4} sx={{ width: '90%' }}>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
-                        Reporte de Ingresos por Vueltas o Tiempo
-                    </Typography>
+                    <FormControl sx={{ minWidth: 150 }}>
+                        <InputLabel>Desde</InputLabel>
+                        <Select
+                            value={selectedMonthFrom}
+                            label="Desde"
+                            onChange={(e) => setSelectedMonthFrom(e.target.value)}
+                        >
+                            {months.map((month) => (
+                                <MenuItem key={month.value} value={month.value}>
+                                    {month.label}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
 
-                    {reportData && (
-                        <TableContainer component={Paper}>
-                            <Table>
-                                <TableHead sx={{ backgroundColor: '#424242' }}>
-                                    <TableRow>
-                                        <TableCell><b>Tipo</b></TableCell>
-                                        <TableCell><b>Enero</b></TableCell>
-                                        <TableCell><b>Febrero</b></TableCell>
-                                        <TableCell><b>Marzo</b></TableCell>
-                                        <TableCell><b>Abril</b></TableCell>
-                                        <TableCell><b>Mayo</b></TableCell>
-                                        <TableCell><b>Junio</b></TableCell>
-                                        <TableCell><b>Total</b></TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {['10', '15', '20'].map((turns) => (
-                                        <TableRow key={turns}>
-                                            <TableCell>{turns} vueltas o máx {turns} min</TableCell>
-                                            <TableCell>${reportData.turns[turns]['01']?.toLocaleString() || '0'}</TableCell>
-                                            <TableCell>${reportData.turns[turns]['02']?.toLocaleString() || '0'}</TableCell>
-                                            <TableCell>${reportData.turns[turns]['03']?.toLocaleString() || '0'}</TableCell>
-                                            <TableCell>${reportData.turns[turns]['04']?.toLocaleString() || '0'}</TableCell>
-                                            <TableCell>${reportData.turns[turns]['05']?.toLocaleString() || '0'}</TableCell>
-                                            <TableCell>${reportData.turns[turns]['06']?.toLocaleString() || '0'}</TableCell>
-                                            <TableCell>${reportData.turns[turns]['total']?.toLocaleString() || '0'}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    <TableRow sx={{ backgroundColor: '#424242' }}>
-                                        <TableCell><b>TOTAL</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['01'] || 0), 0).toLocaleString()}</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['02'] || 0), 0).toLocaleString()}</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['03'] || 0), 0).toLocaleString()}</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['04'] || 0), 0).toLocaleString()}</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['05'] || 0), 0).toLocaleString()}</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['06'] || 0), 0).toLocaleString()}</b></TableCell>
-                                        <TableCell><b>${['10', '15', '20'].reduce((sum, t) => sum + (reportData.turns[t]['total'] || 0), 0).toLocaleString()}</b></TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    )}
+                    <FormControl sx={{ minWidth: 150 }}>
+                        <InputLabel>Hasta</InputLabel>
+                        <Select
+                            value={selectedMonthTo}
+                            label="Hasta"
+                            onChange={(e) => setSelectedMonthTo(e.target.value)}
+                        >
+                            {months.map((month) => (
+                                <MenuItem key={month.value} value={month.value}>
+                                    {month.label}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+
+                    <Button 
+                        variant="contained" 
+                        onClick={handleGenerateReport}
+                        sx={{ height: 56 }}
+                    >
+                        Generar Reporte
+                    </Button>
                 </Box>
-            )}
-            {value === 'two' && (
-                <Box mt={4} sx={{ width: '90%' }}>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
-                    Reporte de Ingresos por Número de Personas
-                    </Typography>
 
-                    {reportData && (
+                {reportData && (
                     <TableContainer component={Paper}>
                         <Table>
-                        <TableHead sx={{ backgroundColor: '#424242' }}>
-                            <TableRow>
-                            <TableCell><b>Rango</b></TableCell>
-                            <TableCell><b>Enero</b></TableCell>
-                            <TableCell><b>Febrero</b></TableCell>
-                            <TableCell><b>Marzo</b></TableCell>
-                            <TableCell><b>Abril</b></TableCell>
-                            <TableCell><b>Mayo</b></TableCell>
-                            <TableCell><b>Junio</b></TableCell>
-                            <TableCell><b>Total</b></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {['1-2', '3-5', '6-10', '11-15'].map((range) => (
-                            <TableRow key={range}>
-                                <TableCell>{range} personas</TableCell>
-                                <TableCell>${reportData.people[range]['01']?.toLocaleString() || '0'}</TableCell>
-                                <TableCell>${reportData.people[range]['02']?.toLocaleString() || '0'}</TableCell>
-                                <TableCell>${reportData.people[range]['03']?.toLocaleString() || '0'}</TableCell>
-                                <TableCell>${reportData.people[range]['04']?.toLocaleString() || '0'}</TableCell>
-                                <TableCell>${reportData.people[range]['05']?.toLocaleString() || '0'}</TableCell>
-                                <TableCell>${reportData.people[range]['06']?.toLocaleString() || '0'}</TableCell>
-                                <TableCell>${reportData.people[range]['total']?.toLocaleString() || '0'}</TableCell>
+                            <TableHead sx={{ backgroundColor: '#2196f3' }}>
+                                <TableRow>
+                                    <TableCell><b>Tipo</b></TableCell>
+                                    {getMonthsInRange().map((month) => (
+                                        <TableCell key={month.value}><b>{month.label}</b></TableCell>
+                                    ))}
+                                    <TableCell><b>Total</b></TableCell>
                                 </TableRow>
-                            ))}
-                            <TableRow sx={{ backgroundColor: '#424242' }}>
-                                <TableCell><b>TOTAL</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['01'] || 0), 0).toLocaleString()}</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['02'] || 0), 0).toLocaleString()}</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['03'] || 0), 0).toLocaleString()}</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['04'] || 0), 0).toLocaleString()}</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['05'] || 0), 0).toLocaleString()}</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['06'] || 0), 0).toLocaleString()}</b></TableCell>
-                                <TableCell><b>${['1-2', '3-5', '6-10', '11-15'].reduce((sum, r) => sum + (reportData.people[r]['total'] || 0), 0).toLocaleString()}</b></TableCell>
-                            </TableRow>
-                        </TableBody>
+                            </TableHead>
+                            <TableBody>
+                                {['10', '15', '20'].map((turns) => (
+                                    <TableRow key={turns}>
+                                        <TableCell>{turns} vueltas o máx {turns} min</TableCell>
+                                        {getMonthsInRange().map((month) => (
+                                            <TableCell key={month.value}>
+                                                ${reportData.turns[turns]?.[month.value]?.toLocaleString() || '0'}
+                                            </TableCell>
+                                        ))}
+                                        <TableCell>
+                                            ${reportData.turns[turns]?.['total']?.toLocaleString() || '0'}
+                                        </TableCell>
+                                    </TableRow>
+                                    ))}
+                                <TableRow sx={{ backgroundColor: '#2196f3' }}>
+                                    <TableCell><b>TOTAL</b></TableCell>
+                                    {getMonthsInRange().map((month) => (
+                                        <TableCell key={month.value}>
+                                            <b>${reportData?.monthlyTotals?.[month.value]?.toLocaleString() || '0'}</b>
+                                        </TableCell>
+                                    ))}
+                                    <TableCell>
+                                        <b>${reportData?.totalGlobal?.toLocaleString() || '0'}</b>
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
                         </Table>
                     </TableContainer>
-                    )}
-                </Box>
-            )}
+                )}
+            </Box>
+            
         </Box>
     );
 }

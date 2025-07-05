@@ -1,7 +1,7 @@
 package com.example.karting3;
 
-import com.example.karting3.Entities.*;
-import com.example.karting3.Repositories.*;
+import com.example.karting3.entities.*;
+import com.example.karting3.repositories.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 

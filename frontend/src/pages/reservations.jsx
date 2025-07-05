@@ -4,11 +4,38 @@ import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
-import { FormControl, InputLabel, Box, Button, TextField, Typography, Select, MenuItem, Stack } from '@mui/material';
+import { FormControl, InputLabel, Box, Button, TextField, Typography, Select, MenuItem, Stack, Card, CardContent, Avatar } from '@mui/material';
 import { verifyAvailability, deleteReservationById, getReceiptsByReservationId, getHoursConfig } from '../api/reservationApi';
 import { getHolidays } from '../api/specialdayApi';
 import { getRackReservations } from '../api/rackApi';
+import PersonIcon from '@mui/icons-material/Person';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import GroupIcon from '@mui/icons-material/Group';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import { getClientByRut } from '../api/clientApi';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import Fab from '@mui/material/Fab';
+import CloseIcon from '@mui/icons-material/Close';
 
+// Estilos personalizados para los botones del calendario
+const calendarStyles = `
+  .fc-button-primary {
+    background-color: #1976d2 !important;
+    border-color: #1976d2 !important;
+    color: white !important;
+  }
+  
+  .fc-button-primary:hover {
+    background-color: #1565c0 !important;
+    border-color: #1565c0 !important;
+  }
+  
+  .fc-button-primary:focus {
+    background-color: #1565c0 !important;
+    border-color: #1565c0 !important;
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
+  }
+`;
 
 /* -------------------- */
 
@@ -28,7 +55,7 @@ function generateWeekdayBlockings(days, startHour, endHour, startDate, endDate, 
                 start: `${formatted}T${startHour}`,
                 end: `${formatted}T${endHour}`,
                 display: 'background',
-                color: '#555555', // Color de bloqueo semana
+                color: '#e0e0e0', // Material-UI Grey 300 para mejor visibilidad
                 overlap: false,
             });
         }
@@ -45,7 +72,7 @@ function generateHolidayBlockings(holidays) {
         start: `${date}T00:00:00`,
         end: `${date}T10:00:00`,
         display: 'background',
-        color: '#555555', // Color de bloqueo feriados
+        color: '#e0e0e0', // Material-UI Grey 300 para mejor visibilidad
         overlap: false,
     }));
 }
@@ -77,6 +104,10 @@ const handleDeleteReservation = async (reservationId) => {
     }
 };
 
+const formatNumber = (num) => {
+    return Number(num).toLocaleString('es-CL');
+};
+
 export default function ReservaCalendario() {
     // Estados para manejar la validez de los campos
     // fechas de los feriados, se cargan desde el backend
@@ -91,8 +122,14 @@ export default function ReservaCalendario() {
     //mostrar los receipt
     const [showReceipts, setShowReceipts] = useState(false);
     const [events, setEvents] = useState([]);
+    const [receiptsWithNames, setReceiptsWithNames] = useState([]);
 
     const detailsRef = useRef(null);
+    const receiptsRef = useRef(null);
+    const calendarRef = useRef(null); // Nuevo ref para el calendario
+    const [showScrollUp, setShowScrollUp] = useState(false);
+
+    const rutCache = {};
 
     const [formData, setFormData] = useState({
         fecha: '',
@@ -109,19 +146,35 @@ export default function ReservaCalendario() {
         specialHours: { min: '10:00', max: '22:00' },// Feriados y fines de semana
     });
 
+    const [showReservationDetail, setShowReservationDetail] = useState(true);
+
     // ver los detalles del comprobante -> receipt
     const handleViewReceipts = async (reservationId) => {
-    
         try {
-            console.log('ID de reserva:', reservationId);
             const receiptsData = await getReceiptsByReservationId(reservationId);
-            setReceipts(receiptsData); // guarda los recibos en el estado
-            setShowReceipts(true); // muestra los recibos
+            // Obtener nombres para cada rut de los receipts
+            const receiptsWithNames = await Promise.all(
+                receiptsData.map(async (r) => {
+                    let name = r.rutClientReceipt;
+                    try {
+                        const client = await getClientByRut(r.rutClientReceipt);
+                        name = client.nameClient || r.rutClientReceipt;
+                    } catch {}
+                    return { ...r, nameClient: name };
+                })
+            );
+            setReceipts(receiptsData);
+            setReceiptsWithNames(receiptsWithNames);
+            setShowReceipts(true);
+            setTimeout(() => {
+                if (receiptsRef.current) {
+                    receiptsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
         } catch (error) {
             alert('Hubo un error al mostrar los comprobantes de la reserva');
             console.error('Error al mostrar los comprobantes de la reserva:', error);
         }
-        
     };
 
     // se hace clic en una reserva
@@ -141,11 +194,13 @@ export default function ReservaCalendario() {
             vueltas: extendedProps.vueltas, 
             group: extendedProps.group,
             state: extendedProps.state,
+            rut: extendedProps.rut,
         });
     
         //extendedProps contiene la información adicional de la reserva
     
         setShowForm(false); // oculta el formulario de crear reserva si estaba abierto
+        setShowReservationDetail(true);
 
         setTimeout(() => {
             if (detailsRef.current) {
@@ -328,16 +383,33 @@ export default function ReservaCalendario() {
                     return;
                 }
 
-                const formatted = reservas.map((r) => ({
-                    id: r.idReservation,
-                    title: `Titular: ${r.holdersReservation}`,
-                    start: `${r.dateReservation}T${r.startHourReservation}`,
-                    end: `${r.dateReservation}T${r.finalHourReservation}`,
-                    vueltas: r.turnsTimeReservation,
-                    group: r.groupSizeReservation,
-                    state: r.statusReservation,
-                    display: 'block',
-                }));
+                const formatted = await Promise.all(
+                    reservas.map(async (r) => {
+                        let name = r.holdersReservation;
+                        if (!rutCache[r.holdersReservation]) {
+                            try {
+                                const client = await getClientByRut(r.holdersReservation);
+                                name = client.nameClient || r.holdersReservation;
+                                rutCache[r.holdersReservation] = name;
+                            } catch {
+                                rutCache[r.holdersReservation] = r.holdersReservation;
+                            }
+                        } else {
+                            name = rutCache[r.holdersReservation];
+                        }
+                        return {
+                            id: r.idReservation,
+                            title: name,
+                            rut: r.holdersReservation,
+                            start: `${r.dateReservation}T${r.startHourReservation}`,
+                            end: `${r.dateReservation}T${r.finalHourReservation}`,
+                            vueltas: r.turnsTimeReservation,
+                            group: r.groupSizeReservation,
+                            state: r.statusReservation,
+                            display: 'block',
+                        };
+                    })
+                );
 
                 // bloqueos horarios de semana sin las fechas de feriados
                 const monToFri = generateWeekdayBlockings(
@@ -355,7 +427,7 @@ export default function ReservaCalendario() {
 
                 setEvents([
                     ...generateWeekdayBlockings(holidayDates), 
-                    ...generateHolidayBlockings(holidayDates), 
+                    ...generateWeekdayBlockings(holidayDates), 
                     ...monToFri, 
                     ...locksHolidays, 
                     ...formatted
@@ -369,9 +441,41 @@ export default function ReservaCalendario() {
         loadInitialData();
     }, []);
 
+    // Detectar scroll para mostrar/ocultar la flecha
+    useEffect(() => {
+        const handleScroll = () => {
+            if (!calendarRef.current) return;
+            const calendarTop = calendarRef.current.getBoundingClientRect().top;
+            setShowScrollUp(calendarTop < -100); // Muestra la flecha si el calendario está fuera de vista
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Inyectar estilos personalizados para los botones del calendario
+    useEffect(() => {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = calendarStyles;
+        document.head.appendChild(styleElement);
+        
+        return () => {
+            document.head.removeChild(styleElement);
+        };
+    }, []);
+
     return (
         <div style={{ padding: '2rem', width: '100%' }}>
-            <Typography variant="h3" fontWeight="bold" gutterBottom sx={{ color: '#e0e0e0' }}>
+            <div ref={calendarRef}></div>
+            <Typography
+                variant="h3"
+                fontWeight="bold"
+                gutterBottom
+                sx={{
+                    color: '#1976d2', // Azul Material-UI
+                    letterSpacing: 1,
+                    textShadow: '0 2px 8px rgba(25, 118, 210, 0.08)'
+                }}
+            >
                 Calendario de Reservas
             </Typography>
             <Box
@@ -391,26 +495,29 @@ export default function ReservaCalendario() {
                         overflow: 'hidden',
                         minWidth: '900px',
                         maxWidth: '1000px',
+                        height: '79vh',
                     }}
                 >
-                    <FullCalendar
-                        plugins={[timeGridPlugin, interactionPlugin]} // CALENDARIO ***
-                        initialView="timeGridWeek"
-                        slotMinTime="10:00:00" // hora de inicio visible de todos los dias
-                        slotMaxTime="22:00:00" // hora de fin visible de todos los dias
-                        slotDuration="00:20:00"
-                        eventClick={handleEventClick} // se puede hacer clic en una reserva
-                        allDaySlot={false}
-                        selectable={true}
-                        editable={false} // no se pueden mover o redimensionar las reservas
-                        eventResizableFromStart={false} // no se pueden redimensionar desde el inicio
-                        select={handleDateSelect} // se puede hacer clic en un bloque horario
-                        events={events}
-                        locale={esLocale}
-                        nowIndicator={true} // muestra la hora actual                        
-                        selectOverlap={false}
-                        
-                    />
+                    <Box>
+                        <FullCalendar
+                            plugins={[timeGridPlugin, interactionPlugin]} // CALENDARIO ***
+                            initialView="timeGridWeek"
+                            slotMinTime="10:00:00" // hora de inicio visible de todos los dias
+                            slotMaxTime="22:00:00" // hora de fin visible de todos los dias
+                            slotDuration="00:20:00"
+                            eventClick={handleEventClick} // se puede hacer clic en una reserva
+                            allDaySlot={false}
+                            selectable={true}
+                            editable={false} // no se pueden mover o redimensionar las reservas
+                            eventResizableFromStart={false} // no se pueden redimensionar desde el inicio
+                            select={handleDateSelect} // se puede hacer clic en un bloque horario
+                            events={events}
+                            locale={esLocale}
+                            nowIndicator={true} // muestra la hora actual                        
+                            selectOverlap={false}
+                            height="79vh"
+                        />
+                    </Box>
                 </Box>
 
                 <Box sx={{ width: '320px' }}>
@@ -430,10 +537,11 @@ export default function ReservaCalendario() {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: 2,
-                                backgroundColor: '#455a64', //color fomulario
+                                backgroundColor: '#e3f2fd', // Azul muy claro
                                 padding: 3,
+                                border: '1px solid #90caf9',
                                 borderRadius: 2,
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.08)',
                                 mt: 2,
                             }}
                         >
@@ -568,31 +676,78 @@ export default function ReservaCalendario() {
                 </Box>
                 
             </Box>
-                {selectedReservation && (
-                    <Box 
-                        ref={detailsRef} p={4}
+                {selectedReservation && showReservationDetail && (
+                    <Card
+                        ref={detailsRef}
                         sx={{
                         mt: 4,
-                        p: 3,
-                        border: '1px solid #ccc',
-                        borderRadius: 2,
-                        backgroundColor: '#263238',
-                        color: '#ffffff',
-                        width: '47%',
-                        textAlign: 'left'
+                            p: 0,
+                            borderRadius: 3,
+                            boxShadow: 4,
+                            background: '#f5f5f5',
+                            color: '#263238',
+                            width: '100%',
+                            maxWidth: 480,
+                            mx: 'auto',
+                            border: '1px solid #e0e0e0',
+                            position: 'relative',
                         }}
                     >
-                        <Typography variant="h5" sx={{ mb: 2 }}>Detalle de la Reserva</Typography>
-                        <Typography> Titular: {selectedReservation.title}</Typography>
-                        <Typography> Fecha: {new Date(selectedReservation.start).toLocaleDateString()}</Typography>
-                        <Typography> Hora de inicio: {new Date(selectedReservation.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false })}</Typography>
-                        <Typography> Hora final: {new Date(selectedReservation.end).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false })}</Typography>
-                        <Typography> Vueltas o tiempo en minutos: {selectedReservation.vueltas}</Typography>
-                        <Typography> Tamaño del grupo: {selectedReservation.group} </Typography>
-                        <Typography> Estado de la reserva: {selectedReservation.state}</Typography>
-
+                        <Button
+                            onClick={() => setShowReservationDetail(false)}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                minWidth: 0,
+                                padding: 0.5,
+                                zIndex: 10,
+                            }}
+                        >
+                            <CloseIcon />
+                        </Button>
+                        <CardContent>
+                            <Box display="flex" alignItems="center" mb={2}>
+                                <Avatar sx={{ bgcolor: '#1976d2', mr: 2 }}>
+                                    <PersonIcon />
+                                </Avatar>
+                                <Box sx={{ textAlign: 'left' }}>
+                                    <Typography variant="h6" fontWeight="bold">
+                                        {selectedReservation.title}
+                                    </Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                        Titular de la reserva
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Rut: {selectedReservation.rut}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Box display="flex" alignItems="center" mb={1}>
+                                <EventAvailableIcon sx={{ color: '#1976d2', mr: 1 }} />
+                                <Typography>
+                                    <b>Fecha:</b> {new Date(selectedReservation.start).toLocaleDateString()}
+                                </Typography>
+                            </Box>
+                            <Box display="flex" alignItems="center" mb={1}>
+                                <AccessTimeIcon sx={{ color: '#1976d2', mr: 1 }} />
+                                <Typography>
+                                    <b>Hora:</b> {new Date(selectedReservation.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false })} - {new Date(selectedReservation.end).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false })}
+                                </Typography>
+                            </Box>
+                            <Box display="flex" alignItems="center" mb={1}>
+                                <GroupIcon sx={{ color: '#1976d2', mr: 1 }} />
+                                <Typography>
+                                    <b>Grupo:</b> {selectedReservation.group}
+                                </Typography>
+                            </Box>
+                            <Typography sx={{ mt: 2 }}>
+                                <b>Vueltas o tiempo:</b> {selectedReservation.vueltas}
+                            </Typography>
+                            <Typography sx={{ mt: 1 }}>
+                                <b>Estado:</b> <span style={{ color: selectedReservation.state === 'Pagada' ? '#388e3c' : '#f44336', fontWeight: 600 }}>{selectedReservation.state}</span>
+                            </Typography>
                         <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-                            {/* Botón para eliminar */}
                             <Button
                                 variant="contained"
                                 color="error"
@@ -621,45 +776,102 @@ export default function ReservaCalendario() {
                                 Ocultar Comprobantes
                             </Button>
                         </Stack>
-                        {/* Comprobantes de la reserva */}
                         {showReceipts && (
                             <Box
+                                    ref={receiptsRef}
                                 sx={{
                                     mt: 4,
                                     p: 2,
-                                    border: '1px solid #ccc',
-                                    borderRadius: 2,
-                                    backgroundColor: '#263238',
-                                    color: '#ffffff'
-                                }}
-                            >
-                                <Typography variant="h6" sx={{ mb: 2 }}>Comprobantes de esta reserva</Typography>
+                                        border: '1px solid #e0e0e0',
+                                        borderRadius: 3,
+                                        backgroundColor: '#f5f5f5', // Gris claro, no amarillo
+                                        color: '#263238',
+                                        boxShadow: 2,
+                                    }}
+                                >
+                                    <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 700 }}>
+                                        Comprobantes de esta reserva
+                                    </Typography>
 
-                                {receipts.length > 0 ? (
-                                    receipts.map((r, idx) => (
-                                        <Box key={idx} sx={{ mb: 2, p: 2, border: '1px solid #666', borderRadius: 1 }}>
-                                            <Typography> Rut Cliente: {r.rutClientReceipt}</Typography>
-                                            <Typography> Precio base: ${r.baseRateReceipt.toFixed(0)}</Typography>
-                                            <Typography> Descuento por cantidad de personas: {r.groupSizeDiscount * 100}%</Typography>
-                                            <Typography> Descuento de cumpleaños: {r.birthdayDiscount * 100}%</Typography>
-                                            <Typography> Descuento de cliente frecuente: {r.loyaltyDiscount * 100}%</Typography>
-                                            <Typography> Descuento de día especial: {r.specialDaysDiscount * 100}%</Typography>
-                                            <Typography> Monto final: ${r.finalAmount.toFixed(0)}</Typography>
-                                            <Typography> IVA: ${r.ivaAmount.toFixed(0)}</Typography>
-                                            <Typography fontWeight="bold" color="success.main" ><b>Total a pagar:</b> ${r.totalAmount.toFixed(0)}</Typography>
-                                        </Box>
-                                    ))
-                                ) : (
-                                    <Box sx={{ p: 2, border: '1px solid #666', borderRadius: 1 }}>
-                                        <Typography>No hay comprobantes para esta reserva</Typography>
+                                {receiptsWithNames.length > 0 ? (
+                                        <Stack spacing={2}>
+                                            {receiptsWithNames.map((r, idx) => (
+                                                <Card key={idx} sx={{ p: 2, borderRadius: 2, boxShadow: 1, background: '#fff', border: '1px solid #bdbdbd' }}>
+                                                    <CardContent sx={{ p: 0 }}>
+                                                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1, color: '#388e3c' }}>
+                                                            <PersonIcon sx={{ verticalAlign: 'middle', mr: 1, color: '#1976d2' }} /> Nombre: <span style={{ color: '#1976d2' }}>{r.nameClient}</span>
+                                                        </Typography>
+                                                        <Typography variant="body2" sx={{ mb: 1, color: '#616161' }}>
+                                                            Rut: {r.rutClientReceipt}
+                                                        </Typography>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>Precio base:</b></span>
+                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>${formatNumber(Math.round(r.baseRateReceipt))}</span>
+                                                        </Box>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>Descuento por cantidad de personas:</b></span>
+                                                            <span style={{ color: '#0288d1', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.groupSizeDiscount * 100))}%</span>
+                                                        </Box>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>Descuento de cumpleaños:</b></span>
+                                                            <span style={{ color: '#fbc02d', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.birthdayDiscount * 100))}%</span>
+                                                        </Box>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>Descuento de cliente frecuente:</b></span>
+                                                            <span style={{ color: '#7b1fa2', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.loyaltyDiscount * 100))}%</span>
+                                                        </Box>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>Descuento de día especial:</b></span>
+                                                            <span style={{ color: '#43a047', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.specialDaysDiscount * 100))}%</span>
+                                                        </Box>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>Monto final:</b></span>
+                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>${formatNumber(Math.round(r.finalAmount))}</span>
+                                                        </Box>
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span><b>IVA:</b></span>
+                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>${formatNumber(Math.round(r.ivaAmount))}</span>
+                                                        </Box>
+                                                        <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span style={{ fontWeight: 500, color: '#d84315', fontSize: '1.5rem'}}><b>Total:</b></span>
+                                                            <span style={{ fontWeight: 600, color: '#d84315', fontSize: '1.5rem', minWidth: 80, textAlign: 'right', marginLeft: 16 }}>${formatNumber(Math.round(r.totalAmount))}</span>
+                                                        </Box>
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
+                                        </Stack>
+                                    ) : (
+                                        <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 2, background: '#fff' }}>
+                                            <Typography>No hay comprobantes para esta reserva</Typography>
                                     </Box>
                                 )}   
                             </Box>
                         )}
-
-
-                    </Box>
+                        </CardContent>
+                    </Card>
                 )}
+            {/* Botón flotante para subir */}
+            {showScrollUp && (
+                <Fab
+                    color="primary"
+                    size="medium"
+                    aria-label="Subir al calendario"
+                    onClick={() => {
+                        if (calendarRef.current) {
+                            calendarRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }}
+                    sx={{
+                        position: 'fixed',
+                        bottom: 32,
+                        right: 32,
+                        zIndex: 2000,
+                        boxShadow: 4,
+                    }}
+                >
+                    <KeyboardArrowUpIcon fontSize="large" />
+                </Fab>
+            )}
         </div>
     );
 }
