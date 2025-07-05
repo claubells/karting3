@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StarIcon from '@mui/icons-material/Star';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { createReservation} from '../api/reservationApi';
 import { checkClientExists, createClient, getClientByRut } from '../api/loyaltyApi';
 import { useNavigate } from 'react-router-dom';
@@ -237,6 +238,18 @@ export default function ReservationClients() {
 
     return (
         <>
+        {/* Botón Volver atrás, debajo de la navbar */}
+        <Box sx={{ mt: 2, mb: 2, display: 'flex', justifyContent: 'flex-start', maxWidth: 700, mx: 'auto' }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            variant="outlined"
+            color="primary"
+            onClick={() => navigate(-1)}
+            sx={{ fontWeight: 600 }}
+          >
+            Volver atrás
+          </Button>
+        </Box>
         {/* Resumen de la reserva */}
         {reservationData1.dateReservation && (
           <Card

@@ -13,6 +13,8 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
 // Función para formatear números con separadores de miles
 const formatNumber = (num) => {
@@ -352,9 +354,24 @@ export default function ReservationSummary() {
                 >
                     Cancelar la reserva
                 </Button>
-            <Button
-                variant="contained"
-                color="success"
+                <Button
+                    variant="contained"
+                    startIcon={<AccessTimeIcon />}
+                    sx={{
+                        backgroundColor: '#ff9800',
+                        color: '#fff',
+                        fontWeight: 549,
+                        fontSize: '1.1rem',
+                        '&:hover': { backgroundColor: '#fb8c00' },
+                    }}
+                    onClick={() => navigate('/home')}
+                >
+                    Confirmar pago más tarde
+                </Button>
+                <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<AttachMoneyIcon />}
                     sx={{ fontSize: '1.2rem', fontWeight: 400 }}
                     onClick={() => { handleSubmitReservation(); }}
                 >

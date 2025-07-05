@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 import { FormControl, InputLabel, Box, Button, TextField, Typography, Select, MenuItem, Stack, Card, CardContent, Avatar, Alert, Snackbar } from '@mui/material';
-import { verifyAvailability, deleteReservationById, getReceiptsByReservationId, getHoursConfig, simulateReceipt } from '../api/reservationApi';
+import { verifyAvailability, deleteReservationById, getReceiptsByReservationId, getHoursConfig, simulateReceipt, createReceipt } from '../api/reservationApi';
 import { getHolidays, getDiscount } from '../api/specialdayApi';
 import { getRackReservations } from '../api/rackApi';
 import PersonIcon from '@mui/icons-material/Person';
@@ -522,10 +522,18 @@ export default function ReservaCalendario() {
         try {
             if (!selectedReservation) return;
 
-            // Obtener el descuento especial para la fecha de la reserva
+            const dateObj = selectedReservation.start instanceof Date
+                ? selectedReservation.start
+                : new Date(selectedReservation.start);
+
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
             let discount = 0.21; // valor por defecto
             try {
-                const discountFromBackend = await getDiscount(selectedReservation.start.split('T')[0]);
+                const discountFromBackend = await getDiscount(dateStr);
                 if (typeof discountFromBackend === 'number') {
                     discount = discountFromBackend;
                 }
@@ -916,13 +924,37 @@ export default function ReservaCalendario() {
                                     fullWidth
                                     startIcon={<SendIcon />}
                                     onClick={async () => {
-                                        // Lógica para crear el recibo
                                         try {
-                                            // Aquí debes llamar a createReceipt con los datos necesarios
-                                            // Por ejemplo:
-                                            // await createReceipt({ ... });
-                                            showAlert('Pago confirmado y recibo creado.', 'success');
-                                            window.location.reload(); // O actualiza el estado según tu flujo
+                                            // Obtener datos de la reserva y clientes del localStorage
+                                            const reservaData = JSON.parse(localStorage.getItem('reservationData2'));
+                                            if (!reservaData || !reservaData.clientList) {
+                                                showAlert('No se encontraron los datos de la reserva.', 'error');
+                                                return;
+                                            }
+
+                                            // Obtener el descuento especial desde el backend
+                                            let specialDaysDiscount = 0;
+                                            try {
+                                                const discountFromBackend = await getDiscount(reservaData.dateReservation);
+                                                if (typeof discountFromBackend === 'number') {
+                                                    specialDaysDiscount = discountFromBackend;
+                                                }
+                                            } catch (error) {
+                                                specialDaysDiscount = 0;
+                                            }
+
+                                            // Llama a createReceipt para cada cliente
+                                            for (const client of reservaData.clientList) {
+                                                await createReceipt({
+                                                    rutClientReceipt: client.rutClient,
+                                                    reservationId: reservaData.idReservation,
+                                                    clientId: client.idClient,
+                                                    specialDaysDiscount: specialDaysDiscount,
+                                                });
+                                            }
+
+                                            showAlert('Pago confirmado y recibos creados.', 'success');
+                                            window.location.reload();
                                         } catch (error) {
                                             showAlert('Error al confirmar el pago.', 'error');
                                         }

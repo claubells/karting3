@@ -109,6 +109,10 @@ public class ReceiptService {
             receipt.setIvaAmount(ivaAmount);
 
             double totalAmount = finalAmount + ivaAmount;
+            // Si tiene parte decimal, redondear hacia arriba
+            if (totalAmount % 1 != 0) {
+                totalAmount = Math.ceil(totalAmount);
+            }
             receipt.setTotalAmount(totalAmount);
 
             // cambiamos el estado de la reserva a pagada:
@@ -194,6 +198,9 @@ public class ReceiptService {
             double finalAmount = baseRate - (baseRate * maxDiscount);
             double ivaAmount = finalAmount * 0.19;
             double totalAmount = finalAmount + ivaAmount;
+            if (totalAmount % 1 != 0) {
+                totalAmount = Math.ceil(totalAmount);
+            }
 
             Long clientId = getClientId(receipt.getRutClientReceipt());
 
