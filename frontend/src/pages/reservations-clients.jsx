@@ -9,7 +9,10 @@ import {
     Button,
     Typography,
     Chip,
+    Card,
+    CardContent,
 } from '@mui/material';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StarIcon from '@mui/icons-material/Star';
 import { createReservation} from '../api/reservationApi';
 import { checkClientExists, createClient, getClientByRut } from '../api/loyaltyApi';
@@ -68,7 +71,13 @@ export default function ReservationClients() {
         const storedReserva = localStorage.getItem('reservationData1');
         if (storedReserva) {
             const { fecha, horaInicio, horaFin, turns } = JSON.parse(storedReserva);
-            
+            setReservationData1({
+                dateReservation: fecha,
+                startHourReservation: horaInicio,
+                finalHourReservation: horaFin,
+                turnsTimeReservation: turns,
+                groupSizeReservation: '', // puedes rellenarlo si lo necesitas
+            });
         }
     }, []);
 
@@ -227,10 +236,49 @@ export default function ReservationClients() {
     };
 
     return (
+        <>
+        {/* Resumen de la reserva */}
+        {reservationData1.dateReservation && (
+          <Card
+            sx={{
+              mb: 4,
+              textAlign: 'center',
+              background: '#f5fafd',
+              border: '1px solid #b3e5fc',
+              borderRadius: 2,
+              boxShadow: 1,
+              maxWidth: 700,
+              width: '100%',
+              mx: 'auto',
+              p: 2,
+            }}
+          >
+            <CardContent>
+              <Typography variant="h4" sx={{ mb: 2, color: '#1976d2', fontWeight: 700 }}>
+                Resumen de la Reserva
+              </Typography>
+              <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
+                <EventAvailableIcon sx={{ color: '#1976d2', fontSize: 32, mr: 1 }} />
+                <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                  {new Date(reservationData1.dateReservation).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: '1.2rem', mb: 0.5 }}>
+                <b>Hora de inicio:</b> {reservationData1.startHourReservation}
+              </Typography>
+              <Typography sx={{ fontSize: '1.2rem', mb: 0.5 }}>
+                <b>Hora final:</b> {reservationData1.finalHourReservation}
+              </Typography>
+              <Typography sx={{ fontSize: '1.2rem' }}>
+                <b>Número de vueltas:</b> {reservationData1.turnsTimeReservation}
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
         <Box
             component="form"
             onSubmit={handleSubmit}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3, minWidth: 208 }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3, minWidth: 508 }}
         >
             <FormControl fullWidth>
                 <InputLabel id="cantidad-label">Cantidad de personas</InputLabel>
@@ -267,14 +315,17 @@ export default function ReservationClients() {
 
                         {index === 0 && (
                             <Chip
-                                icon={<StarIcon htmlColor="black" />}
+                                icon={
+                                    <StarIcon sx={{ color: '#fff !important' }} />
+                                }
                                 label="Titular de la reserva"
                                 size="small"
                                 sx={{
                                     alignSelf: 'start',
                                     mb: 1,
-                                    backgroundColor: '#f57f17',
-                                    color: 'black',
+                                    backgroundColor: '#FFD600 !important',
+                                    color: 'black !important',
+                                    fontWeight: 600,
                                 }}
                             />
                         )}
@@ -310,7 +361,7 @@ export default function ReservationClients() {
                         />
                         {/*  Mensaje si está registrado */}
                         {client.registered && (
-                            <Typography variant="body2" sx={{ color: 'lightgreen', mt: 1 }}>
+                            <Typography variant="body2" sx={{ color: '#4caf50', mt: 1 }}>
                                 {client.message.split('\n').map((line, idx) => (
                                     <span key={idx}>
                                         {line}
@@ -324,10 +375,23 @@ export default function ReservationClients() {
 
             {/* Botón para enviar */}
             {numberPeople !== '' && (
-                <Button type="submit" variant="contained" color="success" sx={{ mt: 2 }}>
+                <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                        mt: 2,
+                        backgroundColor: '#00C853',
+                        color: '#fff',
+                        fontWeight: 600,
+                        '&:hover': {
+                            backgroundColor: '#43a047'
+                        }
+                    }}
+                >
                     Crear Reserva
                 </Button>
             )}
         </Box>
+        </>
     );
 }

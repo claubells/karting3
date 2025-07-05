@@ -259,7 +259,7 @@ export default function ReservationSummary() {
                 }}
             >
                 <CardContent>
-                    <Typography variant="h4" sx={{ mb: 2, color: '#1976d2', fontWeight: 700 }}>
+                    <Typography variant="h4" sx={{ mb: 2, color: '#1976d2', fontWeight: 700, fontSize: '1.6rem'}}>
                         Resumen de la Reserva
                     </Typography>
                     <Box display="flex" alignItems="center" justifyContent="center" mb={1}>

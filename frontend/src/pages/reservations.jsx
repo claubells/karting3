@@ -465,8 +465,6 @@ export default function ReservaCalendario() {
                     })
                 );
 
-                console.log('Reservas pendientes:', formattedPendientes.map(r => ({ id: r.id, estado: r.state, rut: r.rut }))); // LOG ESTADO
-
                 // bloqueos horarios de semana sin las fechas de feriados
                 const monToFri = generateWeekdayBlockings(
                     [1, 2, 3, 4, 5], // Lunes a viernes
@@ -620,7 +618,6 @@ export default function ReservaCalendario() {
                         slotMinTime="10:00:00" // hora de inicio visible de todos los dias
                         slotMaxTime="22:00:00" // hora de fin visible de todos los dias
                         slotDuration="00:20:00"
-                        slotHeight={60}
                         eventClick={handleEventClick} // se puede hacer clic en una reserva
                         allDaySlot={false}
                         selectable={true}
