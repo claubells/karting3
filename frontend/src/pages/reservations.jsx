@@ -4,18 +4,32 @@ import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
-import { FormControl, InputLabel, Box, Button, TextField, Typography, Select, MenuItem, Stack, Card, CardContent, Avatar } from '@mui/material';
-import { verifyAvailability, deleteReservationById, getReceiptsByReservationId, getHoursConfig } from '../api/reservationApi';
-import { getHolidays } from '../api/specialdayApi';
+import { FormControl, InputLabel, Box, Button, TextField, Typography, Select, MenuItem, Stack, Card, CardContent, Avatar, Alert, Snackbar } from '@mui/material';
+import { verifyAvailability, deleteReservationById, getReceiptsByReservationId, getHoursConfig, simulateReceipt } from '../api/reservationApi';
+import { getHolidays, getDiscount } from '../api/specialdayApi';
 import { getRackReservations } from '../api/rackApi';
 import PersonIcon from '@mui/icons-material/Person';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import GroupIcon from '@mui/icons-material/Group';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import { getClientByRut } from '../api/clientApi';
+import { getClientByRut, getClientById } from '../api/clientApi';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Fab from '@mui/material/Fab';
 import CloseIcon from '@mui/icons-material/Close';
+import SendIcon from '@mui/icons-material/Send';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import AddIcon from '@mui/icons-material/Add';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Tooltip from '@mui/material/Tooltip';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 
 // Estilos personalizados para los botones del calendario
 const calendarStyles = `
@@ -34,6 +48,23 @@ const calendarStyles = `
     background-color: #1565c0 !important;
     border-color: #1565c0 !important;
     box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
+  }
+
+  .fc-event-title { 
+    font-size: 1rem !important;
+    font-weight: 500 !important;
+  }
+
+  .fc-event {
+    font-size: 1.9rem !important;
+  }
+
+  .fc-event-main {
+    font-size: 1.6rem !important;
+  }
+
+  .fc-event-main-frame {
+    font-size: 1rem !important;
   }
 `;
 
@@ -123,6 +154,9 @@ export default function ReservaCalendario() {
     const [showReceipts, setShowReceipts] = useState(false);
     const [events, setEvents] = useState([]);
     const [receiptsWithNames, setReceiptsWithNames] = useState([]);
+    const [simulatedReceipts, setSimulatedReceipts] = useState([]);
+    const [specialDaysDiscount, setSpecialDaysDiscount] = useState(0.21);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
     const detailsRef = useRef(null);
     const receiptsRef = useRef(null);
@@ -151,20 +185,26 @@ export default function ReservaCalendario() {
     // ver los detalles del comprobante -> receipt
     const handleViewReceipts = async (reservationId) => {
         try {
+            if (selectedReservation.state === 'Pendiente') {
+                // Para reservas pendientes, simular los comprobantes
+                await simulateReceiptsForPendingReservation();
+            } else {
+                // Para reservas pagadas, obtener los comprobantes reales
             const receiptsData = await getReceiptsByReservationId(reservationId);
-            // Obtener nombres para cada rut de los receipts
-            const receiptsWithNames = await Promise.all(
-                receiptsData.map(async (r) => {
-                    let name = r.rutClientReceipt;
-                    try {
-                        const client = await getClientByRut(r.rutClientReceipt);
-                        name = client.nameClient || r.rutClientReceipt;
-                    } catch {}
-                    return { ...r, nameClient: name };
-                })
-            );
-            setReceipts(receiptsData);
-            setReceiptsWithNames(receiptsWithNames);
+                // Obtener nombres para cada rut de los receipts
+                const receiptsWithNames = await Promise.all(
+                    receiptsData.map(async (r) => {
+                        let name = r.rutClientReceipt;
+                        try {
+                            const client = await getClientByRut(r.rutClientReceipt);
+                            name = client.nameClient || r.rutClientReceipt;
+                        } catch {}
+                        return { ...r, nameClient: name };
+                    })
+                );
+                setReceipts(receiptsData);
+                setReceiptsWithNames(receiptsWithNames);
+            }
             setShowReceipts(true);
             setTimeout(() => {
                 if (receiptsRef.current) {
@@ -172,7 +212,7 @@ export default function ReservaCalendario() {
                 }
             }, 100);
         } catch (error) {
-            alert('Hubo un error al mostrar los comprobantes de la reserva');
+            showAlert('Hubo un error al mostrar los comprobantes de la reserva', 'error');
             console.error('Error al mostrar los comprobantes de la reserva:', error);
         }
     };
@@ -312,17 +352,17 @@ export default function ReservaCalendario() {
 
     const handleConfirm = async () => {
         if (invalidStartTime) {
-            alert('La hora inicial no es válida, debe de estar dentro del horario.');
+            showAlert('La hora inicial no es válida, debe de estar dentro del horario.', 'error');
             return;
         }
 
         if (invalidEndTime || invalidDate) {
-            alert('La hora final no es válida, debe de estar dentro del horario.');
+            showAlert('La hora final no es válida, debe de estar dentro del horario.', 'error');
             return;
         }
 
         if (invalidDate) {
-            alert('El día de la reserva debe ser para hoy en adelante.');
+            showAlert('El día de la reserva debe ser para hoy en adelante.', 'error');
             return;
         }
 
@@ -331,7 +371,7 @@ export default function ReservaCalendario() {
 
         // Validamos que todos los campos esten completos
         if (!fecha || !horaInicio || !horaFin || !turns) {
-            alert('Por favor completa todos los campos antes de continuar');
+            showAlert('Por favor completa todos los campos antes de continuar', 'warning');
             return;
         }
 
@@ -340,7 +380,7 @@ export default function ReservaCalendario() {
         const disponible = await verifyAvailability(fecha, horaInicio, horaFin);
 
         if (!disponible) {
-            alert('Ya existe una reserva en ese horario. Por favor elige otro.');
+            showAlert('Ya existe una reserva en ese horario. Por favor elige otro.', 'error');
             setInvalidStartTime(true);
             return;
         }
@@ -383,7 +423,10 @@ export default function ReservaCalendario() {
                     return;
                 }
 
-                const formatted = await Promise.all(
+                const formatted = [];
+                const formattedPendientes = [];
+
+                await Promise.all(
                     reservas.map(async (r) => {
                         let name = r.holdersReservation;
                         if (!rutCache[r.holdersReservation]) {
@@ -397,9 +440,10 @@ export default function ReservaCalendario() {
                         } else {
                             name = rutCache[r.holdersReservation];
                         }
-                        return {
+
+                        const eventData = {
                             id: r.idReservation,
-                            title: name,
+                            title: r.statusReservation === 'Pendiente' ? `⚠️ ${name}` : name,
                             rut: r.holdersReservation,
                             start: `${r.dateReservation}T${r.startHourReservation}`,
                             end: `${r.dateReservation}T${r.finalHourReservation}`,
@@ -408,8 +452,20 @@ export default function ReservaCalendario() {
                             state: r.statusReservation,
                             display: 'block',
                         };
+
+                        if (r.statusReservation === 'Pendiente') {
+                            formattedPendientes.push({
+                                ...eventData,
+                                color: '#ff9800', // Naranja MUI
+                                textColor: '#fff', // Blanco para contraste
+                            });
+                        } else {
+                            formatted.push(eventData);
+                        }
                     })
                 );
+
+                console.log('Reservas pendientes:', formattedPendientes.map(r => ({ id: r.id, estado: r.state, rut: r.rut }))); // LOG ESTADO
 
                 // bloqueos horarios de semana sin las fechas de feriados
                 const monToFri = generateWeekdayBlockings(
@@ -430,7 +486,8 @@ export default function ReservaCalendario() {
                     ...generateWeekdayBlockings(holidayDates), 
                     ...monToFri, 
                     ...locksHolidays, 
-                    ...formatted
+                    ...formatted,
+                    ...formattedPendientes
                 ]);
             } catch (error) {
                 console.error('Error al cargar los datos iniciales:', error);
@@ -463,6 +520,54 @@ export default function ReservaCalendario() {
         };
     }, []);
 
+    const simulateReceiptsForPendingReservation = async () => {
+        try {
+            if (!selectedReservation) return;
+
+            // Obtener el descuento especial para la fecha de la reserva
+            let discount = 0.21; // valor por defecto
+            try {
+                const discountFromBackend = await getDiscount(selectedReservation.start.split('T')[0]);
+                if (typeof discountFromBackend === 'number') {
+                    discount = discountFromBackend;
+                }
+            } catch (error) {
+                console.error('Error obteniendo descuento especial:', error);
+            }
+
+            // Simular un comprobante para el titular de la reserva
+            const simulated = await simulateReceipt({
+                rutClientReceipt: selectedReservation.rut,
+                reservationId: selectedReservation.id,
+                clientId: 1, // ID temporal
+                specialDaysDiscount: discount,
+            });
+
+            // Formatear el comprobante simulado con el nombre
+            const formattedReceipt = {
+                ...simulated,
+                nameClient: selectedReservation.title,
+            };
+
+            setSimulatedReceipts([formattedReceipt]);
+            setReceiptsWithNames([formattedReceipt]);
+            setSpecialDaysDiscount(discount);
+        } catch (error) {
+            console.error('Error simulando los comprobantes:', error);
+        }
+    };
+
+    const showAlert = (message, severity = 'info') => {
+        setSnackbar({ open: true, message, severity });
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
+
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
     return (
         <div style={{ padding: '2rem', width: '100%' }}>
             <div ref={calendarRef}></div>
@@ -477,6 +582,16 @@ export default function ReservaCalendario() {
                 }}
             >
                 Calendario de Reservas
+            </Typography>
+            <Typography
+                variant="body2"
+                sx={{
+                    color: '#666',
+                    mb: 3,
+                    fontSize: '1.2rem'
+                }}
+            >
+                💡 Haz clic sobre cualquier reserva para ver sus detalles
             </Typography>
             <Box
                 sx={{
@@ -499,24 +614,25 @@ export default function ReservaCalendario() {
                     }}
                 >
                     <Box>
-                        <FullCalendar
-                            plugins={[timeGridPlugin, interactionPlugin]} // CALENDARIO ***
-                            initialView="timeGridWeek"
-                            slotMinTime="10:00:00" // hora de inicio visible de todos los dias
-                            slotMaxTime="22:00:00" // hora de fin visible de todos los dias
-                            slotDuration="00:20:00"
-                            eventClick={handleEventClick} // se puede hacer clic en una reserva
-                            allDaySlot={false}
-                            selectable={true}
-                            editable={false} // no se pueden mover o redimensionar las reservas
-                            eventResizableFromStart={false} // no se pueden redimensionar desde el inicio
-                            select={handleDateSelect} // se puede hacer clic en un bloque horario
-                            events={events}
-                            locale={esLocale}
-                            nowIndicator={true} // muestra la hora actual                        
-                            selectOverlap={false}
+                    <FullCalendar
+                        plugins={[timeGridPlugin, interactionPlugin]} // CALENDARIO ***
+                        initialView="timeGridWeek"
+                        slotMinTime="10:00:00" // hora de inicio visible de todos los dias
+                        slotMaxTime="22:00:00" // hora de fin visible de todos los dias
+                        slotDuration="00:20:00"
+                        slotHeight={60}
+                        eventClick={handleEventClick} // se puede hacer clic en una reserva
+                        allDaySlot={false}
+                        selectable={true}
+                        editable={false} // no se pueden mover o redimensionar las reservas
+                        eventResizableFromStart={false} // no se pueden redimensionar desde el inicio
+                        select={handleDateSelect} // se puede hacer clic en un bloque horario
+                        events={events}
+                        locale={esLocale}
+                        nowIndicator={true} // muestra la hora actual                        
+                        selectOverlap={false}
                             height="79vh"
-                        />
+                    />
                     </Box>
                 </Box>
 
@@ -525,7 +641,9 @@ export default function ReservaCalendario() {
                         variant="contained" // FOMRULARIO LATERAL ****
                         color="primary" // #1976d2
                         fullWidth
+                        startIcon={<AddIcon />}
                         onClick={() => setShowForm((prev) => !prev)}
+                        sx={{ fontSize: '1.2rem', minWidth: 320, px: 6, py: 1 }}
                     >
                         Generar reserva
                     </Button>
@@ -545,7 +663,16 @@ export default function ReservaCalendario() {
                                 mt: 2,
                             }}
                         >
-                            <Typography variant="h6">Nueva Reserva</Typography>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    color: '#424242', // gris oscuro elegante
+                                    fontWeight: 700,
+                                    textAlign: 'center'
+                                }}
+                            >
+                                Nueva Reserva
+                            </Typography>
 
                             {/* Fecha */}
                             <TextField
@@ -632,13 +759,37 @@ export default function ReservaCalendario() {
 
                             {/* se muestra la duración total de la reserva, encima de la hora final*/}
                             {formData.turns && formData.horaInicio && (
-                                //aumentar tamaño de la letra
-                                <Typography
-                                    variant="caption"
-                                    sx={{ mt: -1, ml: 1, fontSize: '0.9rem', color: '#00e676' }}
-                                >
-                                    {`Tiempo total de la reserva: ${getReservationDuration(formData.turns)} minutos`}
-                                </Typography>
+                                <Box sx={{ background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 2, px: 2, py: 1, display: 'inline-flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: '#1976d2', fontWeight: 600, fontSize: '1rem', textAlign: 'center' }}
+                                    >
+                                        {`Tiempo total de la reserva: ${getReservationDuration(formData.turns)} minutos`}
+                                    </Typography>
+                                    <Tooltip 
+                                        title={<span style={{ fontSize: '1.15rem', color: '#1976d2', fontWeight: 500 }}>El tiempo adicional que incluye la reserva es necesario para la preparación, instrucciones y transición entre clientes.</span>} 
+                                        arrow
+                                        slotProps={{
+                                            popper: {
+                                                modifiers: [{ name: 'offset', options: { offset: [0, 8] } }]
+                                            },
+                                            tooltip: {
+                                                sx: {
+                                                    backgroundColor: '#fff',
+                                                    color: '#222',
+                                                    boxShadow: 2,
+                                                    border: '1px solid #90caf9',
+                                                    fontSize: '1.15rem',
+                                                    fontWeight: 500,
+                                                    px: 2,
+                                                    py: 1
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <HelpOutlineIcon sx={{ color: '#1976d2', fontSize: '1.2rem', cursor: 'pointer' }} />
+                                    </Tooltip>
+                                </Box>
                             )}
 
                             {/* Hora Fin (sólo informativa) */}
@@ -665,13 +816,26 @@ export default function ReservaCalendario() {
 
                             <Button
                                 variant="contained"
-                                color="success"
-                                onClick={handleConfirm} // aquí guardamos los datos en el localstorage
+                                onClick={handleConfirm}
+                                startIcon={<ArrowForwardIcon />}
+                                sx={{ backgroundColor: '#66bb6a', color: '#fff', fontWeight: 600, '&:hover': { backgroundColor: '#43a047' } }}
                             >
                                 Continuar
                             </Button>
                         </Box>
                     )}
+                    
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: '#666',
+                            mt: 2,
+                            textAlign: 'center',
+                            fontSize: '1.2rem'
+                        }}
+                    >
+                        📅 ¡Haz clic sobre el calendario para agendar tu reserva!
+                    </Typography>
 
                 </Box>
                 
@@ -687,7 +851,7 @@ export default function ReservaCalendario() {
                             background: '#f5f5f5',
                             color: '#263238',
                             width: '100%',
-                            maxWidth: 480,
+                            maxWidth: 700,
                             mx: 'auto',
                             border: '1px solid #e0e0e0',
                             position: 'relative',
@@ -715,66 +879,93 @@ export default function ReservaCalendario() {
                                     <Typography variant="h6" fontWeight="bold">
                                         {selectedReservation.title}
                                     </Typography>
-                                    <Typography variant="subtitle2" color="text.secondary">
+                                    <Typography variant="subtitle2" color="text.secondary" fontSize={'1rem'}>
                                         Titular de la reserva
                                     </Typography>
-                                    <Typography variant="body2" color="text.secondary">
+                                    <Typography variant="body2" color="text.secondary" fontSize={'1rem'}>
                                         Rut: {selectedReservation.rut}
                                     </Typography>
                                 </Box>
                             </Box>
                             <Box display="flex" alignItems="center" mb={1}>
-                                <EventAvailableIcon sx={{ color: '#1976d2', mr: 1 }} />
-                                <Typography>
+                                <EventAvailableIcon sx={{ color: '#1976d2', mr: 1}} />
+                                <Typography fontSize={'1.2rem'}>
                                     <b>Fecha:</b> {new Date(selectedReservation.start).toLocaleDateString()}
                                 </Typography>
                             </Box>
                             <Box display="flex" alignItems="center" mb={1}>
                                 <AccessTimeIcon sx={{ color: '#1976d2', mr: 1 }} />
-                                <Typography>
+                                <Typography fontSize={'1.2rem'}>
                                     <b>Hora:</b> {new Date(selectedReservation.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false })} - {new Date(selectedReservation.end).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false })}
                                 </Typography>
                             </Box>
                             <Box display="flex" alignItems="center" mb={1}>
                                 <GroupIcon sx={{ color: '#1976d2', mr: 1 }} />
-                                <Typography>
+                                <Typography fontSize={'1.2rem'}>
                                     <b>Grupo:</b> {selectedReservation.group}
                                 </Typography>
                             </Box>
-                            <Typography sx={{ mt: 2 }}>
+                            <Typography sx={{ mt: 2 }} fontSize={'1.2rem'}>
                                 <b>Vueltas o tiempo:</b> {selectedReservation.vueltas}
                             </Typography>
-                            <Typography sx={{ mt: 1 }}>
+                            <Typography sx={{ mt: 1 }} fontSize={'1.2rem'}>
                                 <b>Estado:</b> <span style={{ color: selectedReservation.state === 'Pagada' ? '#388e3c' : '#f44336', fontWeight: 600 }}>{selectedReservation.state}</span>
                             </Typography>
-                        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+                        <Stack direction="column" spacing={2} sx={{ mt: 3 }}>
+                            {selectedReservation.state === 'Pendiente' && (
                             <Button
                                 variant="contained"
-                                color="error"
-                                sx={{ mt: 2 }}
-                                size="small"
-                                onClick={() => handleDeleteReservation(selectedReservation.id)}
-                            >
-                                Cancelar esta reserva
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="info"
-                                sx={{ mt: 2 }}
-                                size="small"
-                                onClick={() => handleViewReceipts(Number(selectedReservation.id))}
-                            >
-                                Ver comprobantes
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                sx={{ mt: 2 }}
-                                size="small"
-                                onClick={() => setShowReceipts(false)}
-                            >
-                                Ocultar Comprobantes
-                            </Button>
+                                    color="success"
+                                    fullWidth
+                                    startIcon={<SendIcon />}
+                                    onClick={async () => {
+                                        // Lógica para crear el recibo
+                                        try {
+                                            // Aquí debes llamar a createReceipt con los datos necesarios
+                                            // Por ejemplo:
+                                            // await createReceipt({ ... });
+                                            showAlert('Pago confirmado y recibo creado.', 'success');
+                                            window.location.reload(); // O actualiza el estado según tu flujo
+                                        } catch (error) {
+                                            showAlert('Error al confirmar el pago.', 'error');
+                                        }
+                                    }}
+                                    sx={{ fontSize: '1.1rem', py: 1.5 }}
+                                >
+                                    Confirmar Pago
+                                </Button>
+                            )}
+                            <Stack direction="row" spacing={2}>
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    startIcon={<DeleteIcon />}
+                                    onClick={() => {
+                                        setPendingDeleteId(selectedReservation.id);
+                                        setConfirmDialogOpen(true);
+                                    }}
+                                    sx={{ fontSize: '1.1rem' }}
+                                    title="Cancelar la reserva"
+                                >
+                                    Cancelar la reserva
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="info"
+                                    size="small"
+                                    onClick={() => {
+                                        if (showReceipts) {
+                                            setShowReceipts(false);
+                                        } else {
+                                            handleViewReceipts(Number(selectedReservation.id));
+                                        }
+                                    }}
+                                    startIcon={showReceipts ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                    sx={{ fontSize: '1.1rem' }}
+                                >
+                                    {showReceipts ? 'Ocultar' : 'Ver'} Detalles de Pago
+                                </Button>
+                            </Stack>
                         </Stack>
                         {showReceipts && (
                             <Box
@@ -787,8 +978,8 @@ export default function ReservaCalendario() {
                                         backgroundColor: '#f5f5f5', // Gris claro, no amarillo
                                         color: '#263238',
                                         boxShadow: 2,
-                                    }}
-                                >
+                                }}
+                            >
                                     <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 700 }}>
                                         Comprobantes de esta reserva
                                     </Typography>
@@ -798,51 +989,62 @@ export default function ReservaCalendario() {
                                             {receiptsWithNames.map((r, idx) => (
                                                 <Card key={idx} sx={{ p: 2, borderRadius: 2, boxShadow: 1, background: '#fff', border: '1px solid #bdbdbd' }}>
                                                     <CardContent sx={{ p: 0 }}>
-                                                        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1, color: '#388e3c' }}>
-                                                            <PersonIcon sx={{ verticalAlign: 'middle', mr: 1, color: '#1976d2' }} /> Nombre: <span style={{ color: '#1976d2' }}>{r.nameClient}</span>
+                                                        {selectedReservation.state === 'Pendiente' && (
+                                                            <Typography variant="caption" sx={{ color: '#ff9800', fontWeight: 550, fontSize:'1.2rem', display: 'block', mb: 1 }}>
+                                                                ⚠️ PAGO PENDIENTE
+                                                            </Typography>
+                                                        )}
+                                                        <Typography variant="subtitle1" fontWeight={550} sx={{ mb: 1, color: '#388e3c', fontSize: '1.5rem' }}>
+                                                            Nombre: <span style={{ color: '#1976d2' }}>{r.nameClient}</span>
                                                         </Typography>
-                                                        <Typography variant="body2" sx={{ mb: 1, color: '#616161' }}>
+                                                        <Typography variant="body2" sx={{ mb: 1, color: '#616161', fontSize: '1.2rem' }}>
                                                             Rut: {r.rutClientReceipt}
                                                         </Typography>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>Precio base:</b></span>
-                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>${formatNumber(Math.round(r.baseRateReceipt))}</span>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>Precio base:</b></span>
+                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>${formatNumber(Math.round(r.baseRateReceipt))}</span>
                                                         </Box>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>Descuento por cantidad de personas:</b></span>
-                                                            <span style={{ color: '#0288d1', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.groupSizeDiscount * 100))}%</span>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>Descuento por cantidad de personas:</b></span>
+                                                            <span style={{ color: '#0288d1', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.groupSizeDiscount * 100))}%</span>
                                                         </Box>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>Descuento de cumpleaños:</b></span>
-                                                            <span style={{ color: '#fbc02d', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.birthdayDiscount * 100))}%</span>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>Descuento de cumpleaños:</b></span>
+                                                            <span style={{ color: '#fbc02d', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.birthdayDiscount * 100))}%</span>
                                                         </Box>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>Descuento de cliente frecuente:</b></span>
-                                                            <span style={{ color: '#7b1fa2', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.loyaltyDiscount * 100))}%</span>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>Descuento de cliente frecuente:</b></span>
+                                                            <span style={{ color: '#7b1fa2', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.loyaltyDiscount * 100))}%</span>
                                                         </Box>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>Descuento de día especial:</b></span>
-                                                            <span style={{ color: '#43a047', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>{formatNumber(Math.round(r.specialDaysDiscount * 100))}%</span>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>Descuento de día especial:</b></span>
+                                                            <span style={{ color: '#43a047', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.specialDaysDiscount * 100))}%</span>
+                                                        </Box>
+                                                        {typeof r.maxDiscount !== 'undefined' && (
+                                                            <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ fontSize: '1.2rem' }}><b>Descuento máximo aplicado:</b></span>
+                                                                <span style={{ color: '#2196f3', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.maxDiscount * 100))}%</span>
+                                                            </Box>
+                                                        )}
+                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>Monto final:</b></span>
+                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>${formatNumber(Math.round(r.finalAmount))}</span>
                                                         </Box>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>Monto final:</b></span>
-                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>${formatNumber(Math.round(r.finalAmount))}</span>
-                                                        </Box>
-                                                        <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span><b>IVA:</b></span>
-                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.15rem' }}>${formatNumber(Math.round(r.ivaAmount))}</span>
+                                                            <span style={{ fontSize: '1.2rem' }}><b>IVA:</b></span>
+                                                            <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>${formatNumber(Math.round(r.ivaAmount))}</span>
                                                         </Box>
                                                         <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <span style={{ fontWeight: 500, color: '#d84315', fontSize: '1.5rem'}}><b>Total:</b></span>
                                                             <span style={{ fontWeight: 600, color: '#d84315', fontSize: '1.5rem', minWidth: 80, textAlign: 'right', marginLeft: 16 }}>${formatNumber(Math.round(r.totalAmount))}</span>
-                                                        </Box>
+                                        </Box>
                                                     </CardContent>
                                                 </Card>
                                             ))}
                                         </Stack>
-                                    ) : (
+                                ) : (
                                         <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 2, background: '#fff' }}>
-                                            <Typography>No hay comprobantes para esta reserva</Typography>
+                                        <Typography sx={{ fontSize: '1.2rem' }}>No hay comprobantes para esta reserva</Typography>
                                     </Box>
                                 )}   
                             </Box>
@@ -871,7 +1073,72 @@ export default function ReservaCalendario() {
                 >
                     <KeyboardArrowUpIcon fontSize="large" />
                 </Fab>
-            )}
+                )}
+            
+            {/* Snackbar para alertas bonitas */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert 
+                    onClose={handleCloseSnackbar} 
+                    severity={snackbar.severity}
+                    sx={{ 
+                        width: '100%',
+                        fontSize: '1.1rem',
+                        '& .MuiAlert-icon': {
+                            fontSize: '1.5rem'
+                        },
+                        ...(snackbar.severity === 'warning' && {
+                            backgroundColor: '#ffe082', // Naranja más visible
+                            color: '#5d4037', // Texto marrón oscuro
+                            border: '1px solid #ffb300',
+                        }),
+                        ...(snackbar.severity === 'error' && {
+                            backgroundColor: '#ffb3b3', // Rojo claro saturado
+                            color: '#b71c1c', // Rojo oscuro
+                            border: '1px solid #ff5252',
+                        })
+                    }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+            <Dialog
+                open={confirmDialogOpen}
+                onClose={() => setConfirmDialogOpen(false)}
+            >
+                <DialogTitle>¿Cancelar la reserva?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Esta acción es irreversible. ¿Estás seguro de que quieres cancelar la reserva?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmDialogOpen(false)} color="primary">
+                        No, volver
+                    </Button>
+                    <Button
+                        onClick={async () => {
+                            try {
+                                await deleteReservationById(pendingDeleteId);
+                                setConfirmDialogOpen(false);
+                                showAlert('Reserva cancelada correctamente.', 'success');
+                                navigate('/reservations');
+                            } catch (error) {
+                                setConfirmDialogOpen(false);
+                                showAlert('No se pudo cancelar la reserva.', 'error');
+                            }
+                        }}
+                        color="error"
+                        variant="contained"
+                    >
+                        Sí, Borrar
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 }

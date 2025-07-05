@@ -105,5 +105,11 @@ public class ReservationController {
         }
     }
 
+    @GetMapping("/pendientes")
+    public ResponseEntity<List<ReservationEntity>> getPendientesReservations() {
+        List<ReservationEntity> reservationP = reservationService.getPendientesReservations();
+        return ResponseEntity.ok(reservationP);
+    }
+
 
 }

@@ -62,6 +62,21 @@ public class ReservationService {
         )).collect(Collectors.toList());
     }
 
+    public List<RackReservationDTO> getAllForRackPaid() {
+        List<ReservationEntity> entities = reservationRepository.findByStatusReservation("Pagada");
+
+        return entities.stream().map(res -> new RackReservationDTO(
+                res.getIdReservation(),
+                res.getHoldersReservation(),
+                res.getDateReservation(),
+                res.getStartHourReservation().toString(),
+                res.getFinalHourReservation().toString(),
+                res.getTurnsTimeReservation(),
+                res.getGroupSizeReservation(),
+                res.getStatusReservation()
+        )).collect(Collectors.toList());
+    }
+
     public ReservationEntity getReservationById(Long reservationId){
         return reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("No se encontró la reserva con ID: " + reservationId));
@@ -119,4 +134,7 @@ public class ReservationService {
     }
 
 
+    public List<ReservationEntity> getPendientesReservations() {
+        return reservationRepository.findByStatusReservation("Pendiente");
+    }
 }

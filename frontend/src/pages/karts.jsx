@@ -94,7 +94,7 @@ const Karts = () => {
     }
 
     return (
-        <Container sx={{ mt: 10, mb: 5 }}>
+        <Container sx={{ mt: 1, mb: 18 }}>
             <Paper 
                 elevation={0} 
                 sx={{ 

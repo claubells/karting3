@@ -15,6 +15,39 @@ import { createReservation} from '../api/reservationApi';
 import { checkClientExists, createClient, getClientByRut } from '../api/loyaltyApi';
 import { useNavigate } from 'react-router-dom';
 
+// Función para formatear RUT con puntos y guión (formato visual)
+const formatRut = (rut) => {
+    // Remover todos los caracteres no numéricos excepto 'k' y 'K'
+    let cleanRut = rut.replace(/[^0-9kK]/g, '');
+    
+    // Si no hay nada, retornar vacío
+    if (!cleanRut) return '';
+    
+    // Convertir a mayúscula
+    cleanRut = cleanRut.toUpperCase();
+    
+    // Separar número y dígito verificador
+    const rutNumber = cleanRut.slice(0, -1);
+    const dv = cleanRut.slice(-1);
+    
+    // Formatear número con puntos
+    let formattedNumber = '';
+    for (let i = rutNumber.length - 1, j = 0; i >= 0; i--, j++) {
+        if (j > 0 && j % 3 === 0) {
+            formattedNumber = '.' + formattedNumber;
+        }
+        formattedNumber = rutNumber[i] + formattedNumber;
+    }
+    
+    // Retornar formato completo
+    return formattedNumber + '-' + dv;
+};
+
+// Función para limpiar RUT (solo números y dígito verificador)
+const cleanRut = (rut) => {
+    return rut.replace(/[^0-9kK]/g, '').toUpperCase();
+};
+
 export default function ReservationClients() {
     const navigate = useNavigate();
 
@@ -62,30 +95,39 @@ export default function ReservationClients() {
     // esta funcion se ejecuta cuando el usuario cambia el valor de un campo en uno de los formularios de persona
     const handleClientChange = async (index, field, value) => {
         const newClients = [...clients]; // copia el array actual
-        newClients[index][field] = value; // actualiza el campo
+        
+        // Si es el campo RUT, aplicar formateo automático
+        if (field === 'rut') {
+            const formattedRut = formatRut(value);
+            newClients[index][field] = formattedRut; // Guardar formato visual
+            
+            // Para consultas al backend, usar RUT limpio
+            const cleanRutValue = cleanRut(value);
+            
+            // Solo consultar si hay al menos 8 caracteres (número + dígito verificador)
+            if (cleanRutValue.length >= 8) {
+                const response = await checkClientExists(cleanRutValue);
+
+                const updatedClients = [...newClients]; // hacemos una nueva copia actualizada
+                if (response.exists) {
+                    // Si el RUT ya existe, mostrar un mensaje de error
+                    updatedClients[index].registered = true;
+                    updatedClients[index].message =
+                        'Cliente ya registrado. \nNo es necesario volver a ingresar los datos.';
+                } else {
+                    // Si el RUT no existe, limpiar el mensaje de error
+                    updatedClients[index].registered = false;
+                    updatedClients[index].message = '';
+                }
+                setClients(updatedClients); // actualiza array de clientes
+                return; // Salir para evitar doble actualización
+            }
+        } else {
+            newClients[index][field] = value; // actualiza el campo
+        }
 
         // se actualiza el estado de los clientes
         setClients(newClients);
-
-        // Si se escribe RUT, consultar al backend
-        if (field === 'rut') {
-            const response = await checkClientExists(value);
-
-            const updatedClients = [...newClients]; // hacemos una nueva copia actualizada
-            if (response.exists) {
-                // Si el RUT ya existe, mostrar un mensaje de error
-                updatedClients[index].registered = true;
-                updatedClients[index].message =
-                    'Cliente ya registrado. \nNo es necesario volver a ingresar los datos.';
-            } else {
-                // Si el RUT no existe, limpiar el mensaje de error
-                updatedClients[index].registered = false;
-                updatedClients[index].message = '';
-            }
-            setClients(updatedClients); // actualiza array de clientes
-        }
-        
-        
     };
 
     // cuando aprietas el boton de enviar
@@ -101,8 +143,10 @@ export default function ReservationClients() {
                 }
             }
             if (!client.registered) {
+                // Enviar RUT limpio al backend
+                const cleanRutValue = cleanRut(client.rut);
                 await createClient({
-                    rutClient: client.rut,
+                    rutClient: cleanRutValue,
                     nameClient: client.name,
                     emailClient: client.email,
                     birthdateClient: client.birthdate,
@@ -128,7 +172,7 @@ export default function ReservationClients() {
 
             const clientList = [];
 
-            for (const rut of clients.map((c) => c.rut)) {
+            for (const rut of clients.map((c) => cleanRut(c.rut))) { // Usar RUT limpio
                 try {
                     const client = await getClientByRut(rut);
                     clientList.push(client);

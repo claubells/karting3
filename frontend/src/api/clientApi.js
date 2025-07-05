@@ -9,3 +9,13 @@ export async function getClientByRut(rut) {
         throw error;
     }
 }
+
+export async function getClientById(id) {
+    try {
+        const response = await httpClient.get(`/id/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error obteniendo el cliente por ID:', error);
+        throw error;
+    }
+}

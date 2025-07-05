@@ -30,4 +30,10 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
     """)
     int countPaidReservationsByRutAndMonth(@Param("rut") String rut, @Param("year") int year, @Param("month") int month);
 
+    @Query("""
+        SELECT r
+        FROM ReservationEntity r
+        WHERE r.statusReservation = :statusReservation
+    """)
+    List<ReservationEntity> findByStatusReservation(@Param("statusReservation") String statusReservation);
 }

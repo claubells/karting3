@@ -2,7 +2,7 @@ import React from 'react';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
-import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
+import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, FormControl, InputLabel, Select, MenuItem, Button, Skeleton } from '@mui/material';
 import { getReportByTurnsByMonth } from '../api/reportApi';
 
 export default function Reports() {
@@ -87,11 +87,33 @@ export default function Reports() {
                 ml: 2,
             }}
         >       
-            <Box mt={4} sx={{ width: '90%' }}>
-                <Typography variant="h5" sx={{ mb: 2 }}>
+            <Paper 
+                elevation={0} 
+                sx={{ 
+                    p: 3, 
+                    mb: 4, 
+                    mt: 1,
+                    background: 'linear-gradient(45deg, #2196f3 30%, #64b5f6 90%)',
+                    borderRadius: 2,
+                    maxWidth: '1400px',
+                    minWidth: '900px',
+                    mx: 'auto',
+                    textAlign: 'center'
+                }}
+            >
+                <Typography 
+                    variant="h4" 
+                    fontWeight="bold" 
+                    sx={{ 
+                        color: 'white',
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
+                    }}
+                >
                     Reporte de Ingresos por Vueltas o Tiempo
                 </Typography>
+            </Paper>
 
+            <Box mt={4} sx={{ width: 'auto', maxWidth: '1400px', mx: 'auto' }}>
                 {/* Controles de selección */}
                 <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
                     <FormControl sx={{ minWidth: 120 }}>
@@ -148,40 +170,49 @@ export default function Reports() {
                     </Button>
                 </Box>
 
-                {reportData && (
-                    <TableContainer component={Paper}>
+                {!reportData ? (
+                    <Skeleton variant="rectangular" width="100%" height={400} sx={{ borderRadius: 2, my: 2 }} />
+                ) : (
+                    <TableContainer component={Paper} sx={{ minWidth: '100%' }}>
                         <Table>
-                            <TableHead sx={{ backgroundColor: '#2196f3' }}>
-                                <TableRow>
-                                    <TableCell><b>Tipo</b></TableCell>
+                            <TableHead>
+                                <TableRow sx={{ backgroundColor: '#1976d2' }}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 500 }}><b>Tipo</b></TableCell>
                                     {getMonthsInRange().map((month) => (
-                                        <TableCell key={month.value}><b>{month.label}</b></TableCell>
+                                        <TableCell key={month.value} sx={{ color: '#fff', fontWeight: 540 }}>
+                                            <b>{month.label}</b>
+                                        </TableCell>
                                     ))}
-                                    <TableCell><b>Total</b></TableCell>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 600, backgroundColor: '#1565c0' }}>
+                                        <b>Total</b>
+                                    </TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {['10', '15', '20'].map((turns) => (
-                                    <TableRow key={turns}>
+                                    <TableRow
+                                        key={turns}
+                                        sx={turns === '15' ? { backgroundColor: '#f5f5f5' } : {}}
+                                    >
                                         <TableCell>{turns} vueltas o máx {turns} min</TableCell>
                                         {getMonthsInRange().map((month) => (
                                             <TableCell key={month.value}>
                                                 ${reportData.turns[turns]?.[month.value]?.toLocaleString() || '0'}
                                             </TableCell>
                                         ))}
-                                        <TableCell>
+                                        <TableCell sx={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 600 }}>
                                             ${reportData.turns[turns]?.['total']?.toLocaleString() || '0'}
                                         </TableCell>
                                     </TableRow>
-                                    ))}
-                                <TableRow sx={{ backgroundColor: '#2196f3' }}>
-                                    <TableCell><b>TOTAL</b></TableCell>
+                                ))}
+                                <TableRow sx={{ backgroundColor: '#1565c0' }}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 600 }}><b>TOTAL</b></TableCell>
                                     {getMonthsInRange().map((month) => (
-                                        <TableCell key={month.value}>
+                                        <TableCell key={month.value} sx={{ color: '#fff', fontWeight: 400 }}>
                                             <b>${reportData?.monthlyTotals?.[month.value]?.toLocaleString() || '0'}</b>
                                         </TableCell>
                                     ))}
-                                    <TableCell>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 500, backgroundColor: '#0d47a1' }}>
                                         <b>${reportData?.totalGlobal?.toLocaleString() || '0'}</b>
                                     </TableCell>
                                 </TableRow>

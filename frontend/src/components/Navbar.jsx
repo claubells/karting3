@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, Link } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -11,7 +11,23 @@ const Navbar = () => {
     return (
         <AppBar position="fixed" color="primary">
             <Toolbar>
-                <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                <Typography
+                    variant="h6"
+                    component={RouterLink}
+                    to="/home"
+                    sx={{
+                        flexGrow: 1,
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        letterSpacing: 1,
+                        '&:hover': {
+                            color: '#90caf9',
+                        },
+                        transition: 'color 0.2s',
+                    }}
+                >
                     Karting RM
                 </Typography>
 
@@ -21,6 +37,12 @@ const Navbar = () => {
                         component={RouterLink}
                         to="/reservations"
                         startIcon={<CalendarMonthIcon />}
+                        sx={{
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                                color: '#90caf9',
+                            },
+                        }}
                     >
                         Reservas
                     </Button>
@@ -29,6 +51,12 @@ const Navbar = () => {
                         component={RouterLink}
                         to="/karts"
                         startIcon={<SpeedIcon />}
+                        sx={{
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                                color: '#90caf9',
+                            },
+                        }}
                     >
                         Karts
                     </Button>
@@ -37,6 +65,12 @@ const Navbar = () => {
                         component={RouterLink}
                         to="/reports"
                         startIcon={<AssessmentIcon />}
+                        sx={{
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                                color: '#90caf9',
+                            },
+                        }}
                     >
                         Reportes
                     </Button>
@@ -45,6 +79,12 @@ const Navbar = () => {
                         component={RouterLink}
                         to="/home"
                         startIcon={<HomeIcon />}
+                        sx={{
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                                color: '#90caf9',
+                            },
+                        }}
                     >
                         Inicio
                     </Button>
@@ -53,6 +93,12 @@ const Navbar = () => {
                         component={RouterLink}
                         to="/"
                         endIcon={<ExitToAppIcon />}
+                        sx={{
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                                color: '#90caf9',
+                            },
+                        }}
                     >
                         Salir
                     </Button>

@@ -1,9 +1,24 @@
 import React, { useEffect, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Box, Typography, TextField } from '@mui/material';
-import { getReservationById, createReceipt, simulateReceipt, getReceiptsByReservationId } from '../api/reservationApi';
+import { Button, Box, Typography, TextField, Card, CardContent, Stack, Alert, Snackbar } from '@mui/material';
+import { getReservationById, createReceipt, simulateReceipt, getReceiptsByReservationId, deleteReservationById } from '../api/reservationApi';
 import { getDiscount } from '../api/specialdayApi';
 import { getClientById } from '../api/loyaltyApi';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+
+// Función para formatear números con separadores de miles
+const formatNumber = (num) => {
+    return Number(num).toLocaleString('es-CL');
+};
+
 export default function ReservationSummary() {
 
     const navigate = useNavigate();
@@ -15,6 +30,19 @@ export default function ReservationSummary() {
 
     const [originalDiscount, setOriginalDiscount] = useState(null); 
     const [specialDaysDiscount, setSpecialDaysDiscount] = useState(0.21);
+
+    // Estados para el diálogo de confirmación
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+    // Función para mostrar alertas bonitas
+    const showAlert = (message, severity = 'info') => {
+        setSnackbar({ open: true, message, severity });
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
 
     // 1 primero cargamos los datos de la reserva desde el localStorage
     useEffect(() => {
@@ -172,11 +200,29 @@ export default function ReservationSummary() {
     
     return (
         <Box p={4}>
-            {isSpecialDay(reservationData.dateReservation) && (
-                <>
-                <Typography variant="h5"sx={{ mb: 3 }}> Descuento especial para fines de semana/feriados </Typography>
+            <Card
+                sx={{
+                    mb: 4,
+                    textAlign: 'center',
+                    background: '#fffde7',
+                    border: '1px solid #ffe082',
+                    borderRadius: 2,
+                    boxShadow: 1,
+                    maxWidth: 700,
+                    width: '100%',
+                    mx: 'auto',
+                    p: 2,
+                }}
+            >
+                <CardContent>
+                    <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
+                        <LocalOfferIcon sx={{ color: '#fbc02d', fontSize: 32, mr: 1 }} />
+                        <Typography variant="h5" sx={{ fontWeight: 600, color: '#b28704' }}>
+                            Descuento especial para fines de semana/feriados
+                        </Typography>
+                    </Box>
                 <TextField
-                    label="Descuento(%)"
+                        label="Descuento (%)"
                     type="number"
                     value={(specialDaysDiscount * 100).toFixed(0)}
                     onChange={(e) => {
@@ -192,78 +238,196 @@ export default function ReservationSummary() {
                         simulateAllReceipts(); // Simula con el valor actual
                     }}
                     slotProps={{
-                        input: {
-                        min: 0,
-                        max: 100,
-                        },
-                    }}
-                    sx={{ mb: 6 }}
-                />
-            </>)}
-            <Typography variant="h4"sx={{ mb: 3 }}>Resumen de la Reserva</Typography>
-            <Typography variant="h5">Fecha: {reservationData.dateReservation}</Typography>
-            <Typography variant="h5">Hora de inicio: {reservationData.startHourReservation}</Typography>
-            <Typography variant="h5">Hora final: {reservationData.finalHourReservation}</Typography>
-            <Typography variant="h5"sx={{ mb: 4 }}>Número de vueltas: {reservationData.turnsTimeReservation}</Typography>
-
-            {simulatedReceipts.length > 0 ? (
-                simulatedReceipts.map((receipt, idx) => (
-                    <Box key={idx} my={2} p={2} border="1px solid #ccc" borderRadius={2}>
-                        <Typography variant="h5" textAlign="left">Nombre: {receipt.nameClientReceipt}</Typography>
-                        <Typography sx={{ mb: 1 }}textAlign="left">RUT: {receipt.rutClientReceipt}</Typography> 
-                        
-                        <Box 
+                            input: { min: 0, max: 100 },
+                        }}
+                        sx={{ mb: 1, maxWidth: 180 }}
+                    />
+                </CardContent>
+            </Card>
+            <Card
                             sx={{ 
-                                borderTop: '1px solid #ccc', 
-                                my: 2  // margen arriba y abajo
-                            }} 
-                        />
-
-                        <Typography textAlign="left">Precio base: ${receipt.baseRateReceipt.toFixed(0)}</Typography>
-                        <Typography textAlign="left">Descuento por numero del grupo: {(receipt.groupSizeDiscount* 100).toFixed(0)}%</Typography>
-                        <Typography textAlign="left">Descuento por cumpleaños: {(receipt.birthdayDiscount* 100).toFixed(0)}%</Typography>
-                        <Typography textAlign="left">Descuento por cliente frecuente: {(receipt.loyaltyDiscount* 100).toFixed(0)}%</Typography>
-                        <Typography textAlign="left">Descuento por fines de semana/feriados: {(receipt.specialDaysDiscount* 100).toFixed(0)}%</Typography>
-                        <Typography textAlign="left" color="#2196f3">Descuento máximo aplicado: {(receipt.maxDiscount * 100).toFixed(0)}%</Typography>
-                        <Typography textAlign="left">Monto final (descuento aplicado): ${receipt.finalAmount.toFixed(0)}</Typography>
-                        <Typography textAlign="left">IVA (19%): ${receipt.ivaAmount.toFixed(0)}</Typography>
-
-                        <Box 
-                            sx={{ 
-                                borderTop: '1px solid #ccc', 
-                                my: 2  // margen arriba y abajo
-                            }} 
-                        />
-
-                        <Typography 
-                            variant="h6"
-                            sx={{ 
-                                color: '#4caf50',  // verde bonito
-                                fontWeight: 'bold',
-                                mt: 2, // margen arriba
-                                fontSize: '1.7rem', // bien grande
-                                textAlign: 'center'
-                                }}
-                            >
-                                Total a pagar: ${receipt.totalAmount.toFixed(0)}
+                    mb: 4,
+                    textAlign: 'center',
+                    background: '#f5fafd',
+                    border: '1px solid #b3e5fc',
+                    borderRadius: 2,
+                    boxShadow: 1,
+                    maxWidth: 700,
+                    width: '100%',
+                    mx: 'auto',
+                    p: 2,
+                }}
+            >
+                <CardContent>
+                    <Typography variant="h4" sx={{ mb: 2, color: '#1976d2', fontWeight: 700 }}>
+                        Resumen de la Reserva
+                    </Typography>
+                    <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
+                        <EventAvailableIcon sx={{ color: '#1976d2', fontSize: 32, mr: 1 }} />
+                        <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                            {new Date(reservationData.dateReservation).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </Typography>
                     </Box>
-                    
-                ))
-            ): (
+                    <Typography sx={{ fontSize: '1.2rem', mb: 0.5 }}>
+                        <b>Hora de inicio:</b> {reservationData.startHourReservation}
+                    </Typography>
+                    <Typography sx={{ fontSize: '1.2rem', mb: 0.5 }}>
+                        <b>Hora final:</b> {reservationData.finalHourReservation}
+                    </Typography>
+                    <Typography sx={{ fontSize: '1.2rem' }}>
+                        <b>Número de vueltas:</b> {reservationData.turnsTimeReservation}
+                    </Typography>
+                </CardContent>
+            </Card>
+
+            {simulatedReceipts.length > 0 ? (
+                <Stack spacing={2}>
+                    {simulatedReceipts.map((receipt, idx) => (
+                        <Card key={idx} sx={{ p: 2, borderRadius: 2, boxShadow: 1, background: '#fff', border: '1px solid #bdbdbd' }}>
+                            <CardContent sx={{ p: 0 }}>
+                                <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1, color: '#388e3c', fontSize: '1.5rem' }}>
+                                    Nombre: <span style={{ color: '#1976d2' }}>{receipt.nameClientReceipt}</span>
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1, color: '#616161', fontSize: '1rem' }}>
+                                    Rut: {receipt.rutClientReceipt}
+                                </Typography>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Precio base:</b></span>
+                                    <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>${formatNumber(Math.round(receipt.baseRateReceipt))}</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Descuento por cantidad de personas:</b></span>
+                                    <span style={{ color: '#0288d1', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>{formatNumber(Math.round(receipt.groupSizeDiscount * 100))}%</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Descuento de cumpleaños:</b></span>
+                                    <span style={{ color: '#fbc02d', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>{formatNumber(Math.round(receipt.birthdayDiscount * 100))}%</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Descuento de cliente frecuente:</b></span>
+                                    <span style={{ color: '#7b1fa2', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>{formatNumber(Math.round(receipt.loyaltyDiscount * 100))}%</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Descuento de día especial:</b></span>
+                                    <span style={{ color: '#43a047', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>{formatNumber(Math.round(receipt.specialDaysDiscount * 100))}%</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Descuento máximo aplicado:</b></span>
+                                    <span style={{ color: '#2196f3', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>{formatNumber(Math.round(receipt.maxDiscount * 100))}%</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>Monto final:</b></span>
+                                    <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>${formatNumber(Math.round(receipt.finalAmount))}</span>
+                                </Box>
+                                <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.2rem' }}><b>IVA:</b></span>
+                                    <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.3rem' }}>${formatNumber(Math.round(receipt.ivaAmount))}</span>
+                                </Box>
+                                <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 500, color: '#d84315', fontSize: '1.5rem'}}><b>Total:</b></span>
+                                    <span style={{ fontWeight: 650, color: '#d84315', fontSize: '1.5rem', minWidth: 80, textAlign: 'right', marginLeft: 16 }}>${formatNumber(Math.round(receipt.totalAmount))}</span>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </Stack>
+            ) : (
+                <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 2, background: '#fff' }}>
                 <Typography>Cargando simulaciones...</Typography>
+                </Box>
             )
         }
             
             {/* Botón para confirmar */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 4 }}>
+                <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => {
+                        setConfirmDialogOpen(true);
+                    }}
+                    sx={{ fontSize: '1.1rem' }}
+                    title="Cancelar la reserva"
+                >
+                    Cancelar la reserva
+                </Button>
             <Button
                 variant="contained"
                 color="success"
-                // aqui cuando se hace click se llama a la función handleSubmitReservation
-                onClick={() => { handleSubmitReservation();}}
+                    sx={{ fontSize: '1.2rem', fontWeight: 400 }}
+                    onClick={() => { handleSubmitReservation(); }}
+                >
+                    Confirmar Pago Total
+                </Button>
+            </Box>
+            
+            {/* Snackbar para alertas bonitas */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
-                Confirmar Pago de Reserva
+                <Alert 
+                    onClose={handleCloseSnackbar} 
+                    severity={snackbar.severity}
+                    sx={{ 
+                        width: '100%',
+                        fontSize: '1.1rem',
+                        '& .MuiAlert-icon': {
+                            fontSize: '1.5rem'
+                        },
+                        ...(snackbar.severity === 'warning' && {
+                            backgroundColor: '#ffe082', // Naranja más visible
+                            color: '#5d4037', // Texto marrón oscuro
+                            border: '1px solid #ffb300',
+                        }),
+                        ...(snackbar.severity === 'error' && {
+                            backgroundColor: '#ffb3b3', // Rojo claro saturado
+                            color: '#b71c1c', // Rojo oscuro
+                            border: '1px solid #ff5252',
+                        })
+                    }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+
+            {/* Diálogo de confirmación para cancelar reserva */}
+            <Dialog
+                open={confirmDialogOpen}
+                onClose={() => setConfirmDialogOpen(false)}
+            >
+                <DialogTitle>¿Cancelar la reserva?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Esta acción es irreversible. ¿Estás seguro de que quieres cancelar la reserva?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmDialogOpen(false)} color="primary">
+                        No, volver
+                    </Button>
+                    <Button
+                        onClick={async () => {
+                            try {
+                                await deleteReservationById(reservationData.idReservation);
+                                setConfirmDialogOpen(false);
+                                showAlert('Reserva cancelada correctamente.', 'success');
+                                navigate('/reservations');
+                            } catch (error) {
+                                setConfirmDialogOpen(false);
+                                showAlert('No se pudo cancelar la reserva.', 'error');
+                            }
+                        }}
+                        color="error"
+                        variant="contained"
+                    >
+                        Sí, Borrar
             </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }

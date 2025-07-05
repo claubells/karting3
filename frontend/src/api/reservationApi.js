@@ -122,3 +122,13 @@ export async function simulateReceipt(receiptData) {
     }
 }
 
+// Servicio para obtener todas las reservas pendientes
+export async function getPendingReservations() {
+    try {
+        const response = await httpClient.get('/reservation/pendientes');
+        return response.data;
+    } catch (error) {
+        console.error('Error al obtener las reservas pendientes:', error);
+        return [];
+    }
+}   
