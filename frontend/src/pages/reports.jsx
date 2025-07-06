@@ -94,7 +94,7 @@ export default function Reports() {
                     background: 'linear-gradient(45deg, #2196f3 30%, #64b5f6 90%)',
                     borderRadius: 2,
                     maxWidth: '1400px',
-                    minWidth: '900px',
+                    minWidth: '1460px',
                     mx: 'auto',
                     textAlign: 'center'
                 }}
@@ -111,7 +111,7 @@ export default function Reports() {
                 </Typography>
             </Paper>
 
-            <Box mt={4} sx={{ width: 'auto', maxWidth: '1400px', mx: 'auto' }}>
+            <Box mt={4} sx={{ width: 'auto', maxWidth: '1500px', mx: 'auto' }}>
                 {/* Controles de selección */}
                 <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
                     <FormControl sx={{ minWidth: 120 }}>
@@ -162,7 +162,7 @@ export default function Reports() {
                     <Button 
                         variant="contained" 
                         onClick={handleGenerateReport}
-                        sx={{ height: 56 }}
+                        sx={{ height: 56, fontSize: '1.1rem' } }
                     >
                         Generar Reporte
                     </Button>
@@ -174,14 +174,16 @@ export default function Reports() {
                     <TableContainer component={Paper} sx={{ minWidth: '100%' }}>
                         <Table>
                             <TableHead>
-                                <TableRow sx={{ backgroundColor: '#1976d2' }}>
-                                    <TableCell sx={{ color: '#fff', fontWeight: 500 }}><b>Tipo</b></TableCell>
+                                <TableRow sx={{ backgroundColor: '#1976d2', fontSize: '1.2rem'}}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 500, fontSize: '1.2rem'}}>
+                                        <b>Tipo</b>
+                                        </TableCell>
                                     {getMonthsInRange().map((month) => (
-                                        <TableCell key={month.value} sx={{ color: '#fff', fontWeight: 540 }}>
+                                        <TableCell key={month.value} sx={{ color: '#fff', fontWeight: 540 , fontSize: '1.2rem' }}>
                                             <b>{month.label}</b>
                                         </TableCell>
                                     ))}
-                                    <TableCell sx={{ color: '#fff', fontWeight: 600, backgroundColor: '#1565c0' }}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 600, backgroundColor: '#1565c0', fontSize: '1.2rem' }}>
                                         <b>Total</b>
                                     </TableCell>
                                 </TableRow>
@@ -190,23 +192,23 @@ export default function Reports() {
                                 {['10', '15', '20'].map((turns) => (
                                     <TableRow
                                         key={turns}
-                                        sx={turns === '15' ? { backgroundColor: '#f5f5f5' } : {}}
+                                        sx={turns === '15' ? { backgroundColor: '#f5f5f5' , fontSize: '1.2rem' } : {}}
                                     >
-                                        <TableCell>{turns} vueltas o máx {turns} min</TableCell>
+                                        <TableCell sx={{ fontSize: '1.2rem' }}>{turns} vueltas o máx {turns} min</TableCell>
                                         {getMonthsInRange().map((month) => (
-                                            <TableCell key={month.value}>
+                                            <TableCell key={month.value} sx={{ fontSize: '1.2rem' }}>
                                                 ${reportData.turns[turns]?.[month.value]?.toLocaleString() || '0'}
                                             </TableCell>
                                         ))}
-                                        <TableCell sx={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 600 }}>
+                                        <TableCell sx={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 600, fontSize: '1.2rem'  }}>
                                             ${reportData.turns[turns]?.['total']?.toLocaleString() || '0'}
                                         </TableCell>
                                     </TableRow>
                                 ))}
-                                <TableRow sx={{ backgroundColor: '#1565c0' }}>
+                                <TableRow sx={{ backgroundColor: '#1565c0', fontSize: '1.7rem'  }}>
                                     <TableCell sx={{ color: '#fff', fontWeight: 600 }}><b>TOTAL</b></TableCell>
                                     {getMonthsInRange().map((month) => (
-                                        <TableCell key={month.value} sx={{ color: '#fff', fontWeight: 400 }}>
+                                        <TableCell key={month.value} sx={{ color: '#fff', fontWeight: 400, fontSize: '1.2rem'  }}>
                                             <b>${reportData?.monthlyTotals?.[month.value]?.toLocaleString() || '0'}</b>
                                         </TableCell>
                                     ))}
