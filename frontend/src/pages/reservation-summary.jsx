@@ -4,7 +4,6 @@ import { Button, Box, Typography, TextField, Card, CardContent, Stack, Alert, Sn
 import { getReservationById, createReceipt, simulateReceipt, getReceiptsByReservationId, deleteReservationById } from '../api/reservationApi';
 import { getDiscount } from '../api/specialdayApi';
 import { getClientById } from '../api/loyaltyApi';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -368,9 +367,9 @@ export default function ReservationSummary() {
                 >
                     Confirmar pago más tarde
                 </Button>
-                <Button
-                    variant="contained"
-                    color="success"
+            <Button
+                variant="contained"
+                color="success"
                     startIcon={<AttachMoneyIcon />}
                     sx={{ fontSize: '1.2rem', fontWeight: 400 }}
                     onClick={() => { handleSubmitReservation(); }}

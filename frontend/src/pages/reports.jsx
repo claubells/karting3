@@ -1,6 +1,4 @@
 import React from 'react';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, FormControl, InputLabel, Select, MenuItem, Button, Skeleton } from '@mui/material';
 import { getReportByTurnsByMonth } from '../api/reportApi';

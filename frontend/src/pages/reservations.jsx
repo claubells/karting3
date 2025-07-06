@@ -12,12 +12,11 @@ import PersonIcon from '@mui/icons-material/Person';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import GroupIcon from '@mui/icons-material/Group';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import { getClientByRut, getClientById } from '../api/clientApi';
+import { getClientByRut } from '../api/clientApi';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Fab from '@mui/material/Fab';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AddIcon from '@mui/icons-material/Add';
@@ -30,6 +29,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Estilos personalizados para los botones del calendario
 const calendarStyles = `
@@ -281,8 +285,26 @@ export default function ReservaCalendario() {
     // Redireccionar a la siguiente pagina del fomulario
     const navigate = useNavigate();
 
-    const handleHourSelect = async (e) => {
-        const { name, value } = e.target;
+    const handleHourSelect = async (e, newValue) => {
+        let name, value;
+
+        if (e?.target) {
+            // Caso para TextField (horaInicio, horaFin)
+            name = e.target.name;
+            value = e.target.value;
+        } else {
+            // Caso para DatePicker (fecha)
+            name = 'fecha';
+            // Convertir la fecha a formato YYYY-MM-DD sin problemas de zona horaria
+            if (newValue) {
+                const year = newValue.getFullYear();
+                const month = String(newValue.getMonth() + 1).padStart(2, '0');
+                const day = String(newValue.getDate()).padStart(2, '0');
+                value = `${year}-${month}-${day}`;
+            } else {
+                value = '';
+            }
+        }
 
         const newFormData = {
             ...formData,
@@ -304,7 +326,7 @@ export default function ReservaCalendario() {
 
         // si la fehca es menor a hoy, se pone como fecha invalida
         if (name === 'fecha') {
-            const isHoy = new Date().toISOString().split('T')[0];
+            const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
             const isInvalidDate = value < hoy;
             const isInvalidHour = validateTime(formData.horaInicio, value);
 
@@ -314,7 +336,7 @@ export default function ReservaCalendario() {
             // Reinicio la hora de fin porque puede depender del nuevo día
             newFormData.horaFin = '';
             setInvalidEndTime(false);
-            setInvalidDate(value < isHoy); // Verifica si la fecha es anterior a hoy
+            setInvalidDate(isInvalidDate); // Verifica si la fecha es anterior a hoy
         }
     };
 
@@ -442,15 +464,15 @@ export default function ReservaCalendario() {
                         }
 
                         const eventData = {
-                            id: r.idReservation,
+                    id: r.idReservation,
                             title: r.statusReservation === 'Pendiente' ? `⚠️ ${name}` : name,
                             rut: r.holdersReservation,
-                            start: `${r.dateReservation}T${r.startHourReservation}`,
-                            end: `${r.dateReservation}T${r.finalHourReservation}`,
-                            vueltas: r.turnsTimeReservation,
-                            group: r.groupSizeReservation,
-                            state: r.statusReservation,
-                            display: 'block',
+                    start: `${r.dateReservation}T${r.startHourReservation}`,
+                    end: `${r.dateReservation}T${r.finalHourReservation}`,
+                    vueltas: r.turnsTimeReservation,
+                    group: r.groupSizeReservation,
+                    state: r.statusReservation,
+                    display: 'block',
                         };
 
                         if (r.statusReservation === 'Pendiente') {
@@ -680,26 +702,26 @@ export default function ReservaCalendario() {
                             </Typography>
 
                             {/* Fecha */}
-                            <TextField
-                                type="date"
-                                label="Mes/día/año"
+                                                         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                                 <DatePicker
+                                     label="Día/mes/año"
                                 name="fecha"
-                                value={formData.fecha}
-                                onChange={handleHourSelect}
-                                required
-                                error={invalidDate} // Si la fecha es inválida, se muestra el error
-                                helperText={
-                                    invalidDate ? 'La fecha debe ser para hoy en adelante' : ''
-                                } // Mensaje de error
+                                     value={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
+                                     onChange={(newValue) => handleHourSelect(null, newValue)}
+                                     minDate={new Date()}
                                 slotProps={{
-                                    input: {
-                                        min: new Date().toISOString().split('T')[0],
-                                    },
-                                    inputLabel: {
+                                         textField: {
+                                             required: true,
+                                             error: invalidDate,
+                                             helperText: invalidDate ? 'La fecha debe ser para hoy en adelante' : '',
+                                             fullWidth: true,
+                                             InputLabelProps: {
                                         shrink: true,
+                                             },
                                     },
                                 }}
                             />
+                             </LocalizationProvider>
 
                             {/* Hora Inicio */}
                             <TextField
@@ -765,12 +787,12 @@ export default function ReservaCalendario() {
                             {/* se muestra la duración total de la reserva, encima de la hora final*/}
                             {formData.turns && formData.horaInicio && (
                                 <Box sx={{ background: '#e3f2fd', border: '1px solid #90caf9', borderRadius: 2, px: 2, py: 1, display: 'inline-flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                                    <Typography
-                                        variant="caption"
+                                <Typography
+                                    variant="caption"
                                         sx={{ color: '#1976d2', fontWeight: 600, fontSize: '1rem', textAlign: 'center' }}
-                                    >
-                                        {`Tiempo total de la reserva: ${getReservationDuration(formData.turns)} minutos`}
-                                    </Typography>
+                                >
+                                    {`Tiempo total de la reserva: ${getReservationDuration(formData.turns)} minutos`}
+                                </Typography>
                                     <Tooltip 
                                         title={<span style={{ fontSize: '1.15rem', color: '#1976d2', fontWeight: 500 }}>El tiempo adicional que incluye la reserva es necesario para la preparación, instrucciones y transición entre clientes.</span>} 
                                         arrow
@@ -862,7 +884,7 @@ export default function ReservaCalendario() {
                             position: 'relative',
                         }}
                     >
-                        <Button
+                            <Button
                             onClick={() => setShowReservationDetail(false)}
                             sx={{
                                 position: 'absolute',
@@ -872,9 +894,9 @@ export default function ReservaCalendario() {
                                 padding: 0.5,
                                 zIndex: 10,
                             }}
-                        >
+                            >
                             <CloseIcon />
-                        </Button>
+                            </Button>
                         <CardContent>
                             <Box display="flex" alignItems="center" mb={2}>
                                 <Avatar sx={{ bgcolor: '#1976d2', mr: 2 }}>
@@ -960,7 +982,7 @@ export default function ReservaCalendario() {
                                         }
                                     }}
                                     sx={{ fontSize: '1.1rem', py: 1.5 }}
-                                >
+                            >
                                     Confirmar Pago
                                 </Button>
                             )}
@@ -977,11 +999,11 @@ export default function ReservaCalendario() {
                                     title="Cancelar la reserva"
                                 >
                                     Cancelar la reserva
-                                </Button>
-                                <Button
-                                    variant="contained"
+                            </Button>
+                            <Button
+                                variant="contained"
                                     color="info"
-                                    size="small"
+                                size="small"
                                     onClick={() => {
                                         if (showReceipts) {
                                             setShowReceipts(false);
@@ -991,10 +1013,10 @@ export default function ReservaCalendario() {
                                     }}
                                     startIcon={showReceipts ? <VisibilityOffIcon /> : <VisibilityIcon />}
                                     sx={{ fontSize: '1.1rem' }}
-                                >
+                            >
                                     {showReceipts ? 'Ocultar' : 'Ver'} Detalles de Pago
-                                </Button>
-                            </Stack>
+                            </Button>
+                        </Stack>
                         </Stack>
                         {showReceipts && (
                             <Box
@@ -1032,7 +1054,7 @@ export default function ReservaCalendario() {
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <span style={{ fontSize: '1.2rem' }}><b>Precio base:</b></span>
                                                             <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>${formatNumber(Math.round(r.baseRateReceipt))}</span>
-                                                        </Box>
+                                        </Box>
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <span style={{ fontSize: '1.2rem' }}><b>Descuento por cantidad de personas:</b></span>
                                                             <span style={{ color: '#0288d1', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.groupSizeDiscount * 100))}%</span>
@@ -1053,8 +1075,8 @@ export default function ReservaCalendario() {
                                                             <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                                 <span style={{ fontSize: '1.2rem' }}><b>Descuento máximo aplicado:</b></span>
                                                                 <span style={{ color: '#2196f3', minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>{formatNumber(Math.round(r.maxDiscount * 100))}%</span>
-                                                            </Box>
-                                                        )}
+                                    </Box>
+                                )}   
                                                         <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <span style={{ fontSize: '1.2rem' }}><b>Monto final:</b></span>
                                                             <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>${formatNumber(Math.round(r.finalAmount))}</span>
@@ -1074,10 +1096,10 @@ export default function ReservaCalendario() {
                                 ) : (
                                         <Box sx={{ p: 2, border: '1px solid #eee', borderRadius: 2, background: '#fff' }}>
                                         <Typography sx={{ fontSize: '1.2rem' }}>No hay comprobantes para esta reserva</Typography>
-                                    </Box>
-                                )}   
                             </Box>
                         )}
+                    </Box>
+                )}
                         </CardContent>
                     </Card>
                 )}
