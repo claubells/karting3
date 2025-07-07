@@ -11,6 +11,11 @@ import {
     Chip,
     Card,
     CardContent,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions
 } from '@mui/material';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StarIcon from '@mui/icons-material/Star';
@@ -18,6 +23,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { createReservation} from '../api/reservationApi';
 import { checkClientExists, createClient, getClientByRut } from '../api/loyaltyApi';
 import { useNavigate } from 'react-router-dom';
+import ErrorSnackbar from './ErrorSnackbar';
+
 
 // Función para formatear RUT con puntos y guión (formato visual)
 const formatRut = (rut) => {
@@ -52,7 +59,18 @@ const cleanRut = (rut) => {
     return rut.replace(/[^0-9kK]/g, '').toUpperCase();
 };
 
+
 export default function ReservationClients() {
+    const [openError, setOpenError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    // Estado para el dialog de confirmación
+    const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+
+    const handleError = (err) => {
+        setErrorMessage(err.message || 'Ocurrió un error inesperado');
+        setOpenError(true);
+    };
+
     const navigate = useNavigate();
 
     const [numberPeople, setNumberPeople] = useState(''); // empezamos de un valor vacio
@@ -115,8 +133,8 @@ export default function ReservationClients() {
             const cleanRutValue = cleanRut(value);
             
             // Solo consultar si hay al menos 8 caracteres (número + dígito verificador)
-            if (cleanRutValue.length >= 8) {
-                const response = await checkClientExists(cleanRutValue);
+            if (cleanRutValue.length >= 8 && cleanRutValue.length <= 9) {
+                const response = await checkClientExists(cleanRutValue, handleError);
 
                 const updatedClients = [...newClients]; // hacemos una nueva copia actualizada
                 if (response.exists) {
@@ -124,6 +142,10 @@ export default function ReservationClients() {
                     updatedClients[index].registered = true;
                     updatedClients[index].message =
                         'Cliente ya registrado. \nNo es necesario volver a ingresar los datos.';
+                    updatedClients[index].name = '';
+                    updatedClients[index].email = '';
+                    updatedClients[index].birthdate = '';
+                
                 } else {
                     // Si el RUT no existe, limpiar el mensaje de error
                     updatedClients[index].registered = false;
@@ -142,7 +164,7 @@ export default function ReservationClients() {
 
     // cuando aprietas el boton de enviar
     const handleSubmit = async (e) => {
-        e.preventDefault(); // evita que recargue la pagina
+        if (e) e.preventDefault(); // evita que recargue la pagina
 
         // se crean los clientes
         for (const client of clients) {
@@ -151,16 +173,19 @@ export default function ReservationClients() {
                     alert('Por favor completa todos los campos de cada persona no registrada.');
                     return;
                 }
-            }
-            if (!client.registered) {
                 // Enviar RUT limpio al backend
                 const cleanRutValue = cleanRut(client.rut);
-                await createClient({
-                    rutClient: cleanRutValue,
-                    nameClient: client.name,
-                    emailClient: client.email,
-                    birthdateClient: client.birthdate,
-                });
+                try {
+                    await createClient({
+                        rutClient: cleanRutValue,
+                        nameClient: client.name,
+                        emailClient: client.email,
+                        birthdateClient: client.birthdate,
+                    });
+                } catch (error) {
+                    handleError(error);
+                    return;
+                }
             }
         }
 
@@ -182,14 +207,9 @@ export default function ReservationClients() {
 
             const clientList = [];
 
-            for (const rut of clients.map((c) => cleanRut(c.rut))) { // Usar RUT limpio
-                try {
-                    const client = await getClientByRut(rut);
-                    clientList.push(client);
-                } catch (err) {
-                    alert(`No se pudo obtener el cliente con RUT ${rut}`);
-                    return;
-                }
+            for (const rut of clients.map((c) => cleanRut(c.rut))) { 
+                const client = await getClientByRut(rut);
+                clientList.push(client);
             }
 
             const storedReserva = JSON.parse(localStorage.getItem('reservationData1'));
@@ -212,12 +232,6 @@ export default function ReservationClients() {
             // creamos la reserva
             const newReservation = await createReservation(infoNewReservation);
 
-            if (!newReservation || !newReservation.idReservation) {
-                console.error('❌ La reserva no se creó correctamente:', newReservation);
-                alert('No se pudo crear la reserva. El ID es inválido.');
-                return;
-            }
-
             // guardamos la nueva reserva en el localStorage
             localStorage.setItem('reservationData2', JSON.stringify({
                 ...infoNewReservation,
@@ -231,8 +245,22 @@ export default function ReservationClients() {
             localStorage.removeItem('reservationData1');
             navigate('/reservation-summary');
         } catch (error) {
-            console.error('Error al crear la reserva:', error);
-            alert('No se pudo crear la reserva. Intenta nuevamente.');
+            let backendMsg = 'Error desconocido';
+            
+            if (error.response) {
+                const response = error.response;
+
+                if (typeof response.data === 'string') {
+                    backendMsg = response.data;
+                } else if (response.data?.message) {
+                    backendMsg = response.data.message;
+                } else if (response.data?.error) {
+                    backendMsg = response.data.error;
+                }
+            } else if (error.message) {
+                backendMsg = error.message;
+            }
+            handleError(new Error(backendMsg));
         }
     };
 
@@ -290,7 +318,7 @@ export default function ReservationClients() {
         )}
         <Box
             component="form"
-            onSubmit={handleSubmit}
+            // onSubmit={handleSubmit} // Quitamos el submit directo
             sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3, minWidth: 508 }}
         >
             <FormControl fullWidth>
@@ -345,6 +373,7 @@ export default function ReservationClients() {
 
                         <TextField
                             label="RUT"
+                            placeholder="Ej: 19.847.223-4"
                             value={client.rut}
                             onChange={(e) => handleClientChange(index, 'rut', e.target.value)}
                             required
@@ -389,7 +418,6 @@ export default function ReservationClients() {
             {/* Botón para enviar */}
             {numberPeople !== '' && (
                 <Button
-                    type="submit"
                     variant="contained"
                     sx={{
                         mt: 2,
@@ -400,11 +428,58 @@ export default function ReservationClients() {
                             backgroundColor: '#43a047'
                         }
                     }}
+                    onClick={() => setOpenConfirmDialog(true)}
                 >
                     Crear Reserva
                 </Button>
             )}
         </Box>
+
+        {/* Dialog de confirmación */}
+        <Dialog
+            open={openConfirmDialog}
+            onClose={() => setOpenConfirmDialog(false)}
+            aria-labelledby="confirm-dialog-title"
+            aria-describedby="confirm-dialog-description"
+        >
+            <DialogTitle id="confirm-dialog-title" sx={{ color: '#1976d2', fontWeight: 700 }}>
+                Verificar datos de la reserva
+            </DialogTitle>
+            <DialogContent>
+                <DialogContentText id="confirm-dialog-description" sx={{ fontSize: '1.1rem', color: '#333' }}>
+                    Por favor, revisa que los datos de todos los clientes y la reserva sean correctos antes de crear la reserva.<br/><br/>
+                    ¿Estás seguro de que toda la información es correcta?
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+                <Button
+                    onClick={() => setOpenConfirmDialog(false)}
+                    variant="outlined"
+                    color="primary"
+                    sx={{ fontWeight: 600 }}
+                >
+                    No, revisaré los datos
+                </Button>
+                <Button
+                    onClick={async () => {
+                        setOpenConfirmDialog(false);
+                        // Guardar alerta en localStorage
+                        localStorage.setItem('reservaAlerta', 'Reserva creada correctamente. Pendiente de pago ');
+                        await handleSubmit({ preventDefault: () => {} });
+                    }}
+                    variant="contained"
+                    sx={{ backgroundColor: '#00C853', color: '#fff', fontWeight: 600, '&:hover': { backgroundColor: '#43a047' } }}
+                >
+                    Sí, los datos están correctos
+                </Button>
+            </DialogActions>
+        </Dialog>
+
+        <ErrorSnackbar 
+            open={openError} 
+            message={errorMessage} 
+            onClose={() => setOpenError(false)} 
+        />
         </>
     );
 }

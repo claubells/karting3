@@ -1,6 +1,6 @@
 import React, { useEffect, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Box, Typography, TextField, Card, CardContent, Stack, Alert, Snackbar } from '@mui/material';
+import { Button, Box, Typography, TextField, Card, CardContent, Stack, Alert, Snackbar, CircularProgress, Modal } from '@mui/material';
 import { getReservationById, createReceipt, simulateReceipt, getReceiptsByReservationId, deleteReservationById } from '../api/reservationApi';
 import { getDiscount } from '../api/specialdayApi';
 import { getClientById } from '../api/loyaltyApi';
@@ -14,11 +14,14 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import MuiAlert from '@mui/material/Alert';
 
 // Función para formatear números con separadores de miles
 const formatNumber = (num) => {
     return Number(num).toLocaleString('es-CL');
 };
+
+
 
 export default function ReservationSummary() {
 
@@ -36,6 +39,8 @@ export default function ReservationSummary() {
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
+    const [loading, setLoading] = useState(false);
+
     // Función para mostrar alertas bonitas
     const showAlert = (message, severity = 'info') => {
         setSnackbar({ open: true, message, severity });
@@ -45,13 +50,23 @@ export default function ReservationSummary() {
         setSnackbar({ ...snackbar, open: false });
     };
 
+    const Alert = React.forwardRef(function Alert(props, ref) {
+        return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+    });
+
     // 1 primero cargamos los datos de la reserva desde el localStorage
     useEffect(() => {
+        // Mostrar alerta de reserva creada si existe
+        const alerta = localStorage.getItem('reservaAlerta');
+        if (alerta) {
+            setSnackbar({ open: true, message: alerta, severity: 'success' });
+            localStorage.removeItem('reservaAlerta');
+        }
         const loadInitialData = async () => {
             const idReservation = localStorage.getItem('idReservation');
             if (!idReservation) {
                 alert('No hay ID de reserva');
-                navigate('/home');
+                navigate('/karting');
                 return;
             }
             
@@ -161,9 +176,11 @@ export default function ReservationSummary() {
         try {
 
             if (!reservationData || clientList.length === 0) {
-                alert('Datos de reserva inválidos.');
+                showAlert('Datos de reserva inválidos.', 'error');
                 return;
             }
+
+            setLoading(true);// activa spinner anti-estrés
 
             // se crean los comprobantes para cada cliente x el back
             for (const client of clientList) {
@@ -172,7 +189,7 @@ export default function ReservationSummary() {
                     continue; // o return si quieres cortar el proceso
                 }
 
-                console.log("🧾 Enviando recibo para:", client);
+                showAlert(`Enviando comprobante de ${client.nameClient || 'cliente sin nombre'} ...`, 'info');
 
                 await createReceipt({
                     rutClientReceipt: client.rutClient,
@@ -187,11 +204,17 @@ export default function ReservationSummary() {
             setReceipts(receiptsData);
 
             localStorage.removeItem('specialDaysDiscountSet');
-            alert('Reserva y comprobantes creados correctamente.');
-            navigate('/home');
+            localStorage.setItem('postSuccessMessage', '✅ Reserva y comprobantes creados correctamente.');
+
+            // Espera 1 segundo antes de navegar
+            setTimeout(() => {
+                setLoading(false);
+                navigate('/home');
+            }, 1000);
         } catch (error) {
-            console.error('Error al confirmar la reserva: ', error);
-            alert('No se pudo confirmar la reserva. Intenta nuevamente.');
+            setLoading(false);
+            setLoading(false);
+            showAlert('No se pudo confirmar la reserva. Intenta nuevamente.', 'error');
         }
     }
 
@@ -200,6 +223,26 @@ export default function ReservationSummary() {
     }
     
     return (
+        <>
+        {loading && (
+            <Box
+            sx={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh',
+                backgroundColor: 'rgba(0,0,0,0.4)',
+                zIndex: 1300,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+            }}
+            >
+                <CircularProgress size={80} />
+            </Box>
+        )}
         <Box p={4}>
             <Card
                 sx={{
@@ -381,7 +424,7 @@ export default function ReservationSummary() {
             {/* Snackbar para alertas bonitas */}
             <Snackbar
                 open={snackbar.open}
-                autoHideDuration={4000}
+                autoHideDuration={snackbar.severity === 'success' ? 6000 : 4000}
                 onClose={handleCloseSnackbar}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             >
@@ -445,5 +488,7 @@ export default function ReservationSummary() {
                 </DialogActions>
             </Dialog>
         </Box>
+
+        </>
     );
 }

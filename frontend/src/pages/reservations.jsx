@@ -37,39 +37,45 @@ import { es } from 'date-fns/locale';
 
 // Estilos personalizados para los botones del calendario
 const calendarStyles = `
-  .fc-button-primary {
-    background-color: #1976d2 !important;
-    border-color: #1976d2 !important;
-    color: white !important;
-  }
+    .fc-button-primary {
+        background-color: #1976d2 !important;
+        border-color: #1976d2 !important;
+        color: white !important;
+    }
   
-  .fc-button-primary:hover {
-    background-color: #1565c0 !important;
-    border-color: #1565c0 !important;
-  }
-  
-  .fc-button-primary:focus {
-    background-color: #1565c0 !important;
-    border-color: #1565c0 !important;
-    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
-  }
+    .fc-button-primary:hover {
+        background-color: #1565c0 !important;
+        border-color: #1565c0 !important;
+    }
+    
+    .fc-button-primary:focus {
+        background-color: #1565c0 !important;
+        border-color: #1565c0 !important;
+        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2) !important;
+    }
 
-  .fc-event-title { 
-    font-size: 1rem !important;
-    font-weight: 500 !important;
-  }
+    .fc-event-title { 
+        font-size: 1rem !important;
+        font-weight: 500 !important;
+    }
 
-  .fc-event {
-    font-size: 1.9rem !important;
-  }
+    .fc-event {
+        font-size: 1.9rem !important;
+    }
 
-  .fc-event-main {
-    font-size: 1.6rem !important;
-  }
+    .fc-event-main {
+        font-size: 1.6rem !important;
+    }
 
-  .fc-event-main-frame {
-    font-size: 1rem !important;
-  }
+    .fc-event-main-frame {
+        font-size: 1rem !important;
+    }
+
+    .fc-bloqueo-gris.fc-bg-event {
+        background-color: rgba(99, 99, 99, 0.79) !important;
+        border: none !important;
+        pointer-events: none;
+    }
 `;
 
 /* -------------------- */
@@ -90,7 +96,7 @@ function generateWeekdayBlockings(days, startHour, endHour, startDate, endDate, 
                 start: `${formatted}T${startHour}`,
                 end: `${formatted}T${endHour}`,
                 display: 'background',
-                color: '#e0e0e0', // Material-UI Grey 300 para mejor visibilidad
+                className: 'fc-bloqueo-gris',
                 overlap: false,
             });
         }
@@ -101,15 +107,24 @@ function generateWeekdayBlockings(days, startHour, endHour, startDate, endDate, 
     return blocks;
 }
 
-// Bloqueos para horarios previos a las 10:00 (feriados)
+// Bloqueos para horarios previos a las 10:00 (feriados) y dsp de 2025
 function generateHolidayBlockings(holidays) {
-    return holidays.map(({ date }) => ({
+    const blockings = holidays.map(({ date }) => ({
         start: `${date}T00:00:00`,
         end: `${date}T10:00:00`,
         display: 'background',
-        color: '#e0e0e0', // Material-UI Grey 300 para mejor visibilidad
+        className: 'fc-bloqueo-gris',
         overlap: false,
     }));
+    // Bloqueo total desde el 1 de enero de 2026 en adelante
+    blockings.push({
+        start: '2026-01-01T00:00:00',
+        end: '2100-01-01T00:00:00', // una fecha lejana para abarcar años futuros
+        display: 'background',
+        className: 'fc-bloqueo-gris',
+        overlap: false,
+    });
+    return blockings;
 }
 
 function getReservationDuration(turns) {
@@ -124,24 +139,6 @@ function getReservationDuration(turns) {
             return 0;
     }
 }
-
-const handleDeleteReservation = async (reservationId) => {
-    if (window.confirm('¿Estás seguro de que quieres cancelar esta reserva?')) {
-        try {
-            await deleteReservationById(reservationId);
-            window.location.reload(); // Refresca la página para mostrar los cambios
-            alert('Reserva cancelada correctamente');
-            // Aquí puedes refrescar la lista de eventos si quieres
-        } catch (error) {
-            alert('Hubo un error al cancelar la reserva');
-            console.error('Error al cancelar la reserva:', error);
-        }
-    }
-};
-
-const formatNumber = (num) => {
-    return Number(num).toLocaleString('es-CL');
-};
 
 export default function ReservaCalendario() {
     // Estados para manejar la validez de los campos
@@ -255,8 +252,19 @@ export default function ReservaCalendario() {
 
     // Validar que la hora de inicio y fin no sean menores a 10:00 ni mayores a 22:00
     function validateTime(hour, date) {
+        if (!hour || !date) return true;
         const minLimit = isSpecialDay(date) ? hoursConfig.specialHours.min : hoursConfig.weeklyHours.min;
         const maxLimit = '22:00';
+
+        const now = new Date();
+        const isToday = date === now.toISOString().split('T')[0];
+
+        if (isToday) {
+            const [h, m] = hour.split(':');
+            const selectedDateTime = new Date(`${date}T${h.padStart(2, '0')}:${m.padStart(2, '0')}`);
+            if (selectedDateTime < now) return true;
+        }
+
         return hour < minLimit || hour > maxLimit;
     }
 
@@ -315,8 +323,9 @@ export default function ReservaCalendario() {
 
         // Validar la hora de inicio y fin
         if (name === 'horaInicio') {
-            const isInvalid = validateTime(value, formData.fecha);
-            setInvalidStartTime(isInvalid);
+            const isInvalidHour = validateTime(value, formData.fecha);
+
+            setInvalidStartTime(isInvalidHour);
         }
 
         if (name === 'horaFin') {
@@ -327,7 +336,8 @@ export default function ReservaCalendario() {
         // si la fehca es menor a hoy, se pone como fecha invalida
         if (name === 'fecha') {
             const hoy = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
-            const isInvalidDate = value < hoy;
+            const maxDate = '2025-12-31';
+            const isInvalidDate = value < hoy || value > maxDate;;
             const isInvalidHour = validateTime(formData.horaInicio, value);
 
             setInvalidDate(isInvalidDate);
@@ -351,11 +361,14 @@ export default function ReservaCalendario() {
         const horaInicio = start.toTimeString().slice(0, 5);
 
         const hoy = new Date().toISOString().split('T')[0];
-
+        const max = '2025-12-31';
         // Verifica si la fecha es anterior a hoy
-        const isInvalidDate = fecha < hoy;
+        const isInvalidDate = fecha < hoy || fecha > max;;
         const isInvalidHour = validateTime(horaInicio, fecha);
-
+        if (isInvalidDate) {
+            setInvalidDate(true);
+            return;
+        }
         //se actualiza el estado de la fecha y hora invalida
         setInvalidDate(isInvalidDate);
         setInvalidStartTime(isInvalidHour);
@@ -596,6 +609,24 @@ export default function ReservaCalendario() {
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
+    // Muevo aquí la función para que tenga acceso a los hooks
+    const handleDeleteReservation = async (reservationId) => {
+        try {
+            await deleteReservationById(reservationId);
+            setConfirmDialogOpen(false);
+            showAlert('Reserva cancelada correctamente.', 'success');
+            navigate('/reservations');
+            window.location.reload(); // Refresca la página
+        } catch (error) {
+            setConfirmDialogOpen(false);
+            showAlert('No se pudo cancelar la reserva.', 'error');
+        }
+    };
+
+    const formatNumber = (num) => {
+        return Number(num).toLocaleString('es-CL');
+    };
+
     return (
         <div style={{ padding: '2rem', width: '100%' }}>
             <div ref={calendarRef}></div>
@@ -651,6 +682,7 @@ export default function ReservaCalendario() {
                         eventClick={handleEventClick} // se puede hacer clic en una reserva
                         allDaySlot={false}
                         selectable={true}
+                        validRange={{ start: '2025-01-01', end: '2026-01-0'}}
                         editable={false} // no se pueden mover o redimensionar las reservas
                         eventResizableFromStart={false} // no se pueden redimensionar desde el inicio
                         select={handleDateSelect} // se puede hacer clic en un bloque horario
@@ -709,15 +741,16 @@ export default function ReservaCalendario() {
                                      value={formData.fecha ? new Date(formData.fecha + 'T00:00:00') : null}
                                      onChange={(newValue) => handleHourSelect(null, newValue)}
                                      minDate={new Date()}
+                                     maxDate={new Date('2025-12-31')}
                                 slotProps={{
-                                         textField: {
-                                             required: true,
-                                             error: invalidDate,
-                                             helperText: invalidDate ? 'La fecha debe ser para hoy en adelante' : '',
-                                             fullWidth: true,
-                                             InputLabelProps: {
-                                        shrink: true,
-                                             },
+                                    textField: {
+                                        required: true,
+                                        error: invalidDate,
+                                        helperText: invalidDate ? 'La fecha debe estar entre hoy y el 31 de diciembre de 2025.' : '',
+                                        fullWidth: true,
+                                        InputLabelProps: {
+                                            shrink: true,
+                                        },
                                     },
                                 }}
                             />
@@ -1173,15 +1206,7 @@ export default function ReservaCalendario() {
                     </Button>
                     <Button
                         onClick={async () => {
-                            try {
-                                await deleteReservationById(pendingDeleteId);
-                                setConfirmDialogOpen(false);
-                                showAlert('Reserva cancelada correctamente.', 'success');
-                                navigate('/reservations');
-                            } catch (error) {
-                                setConfirmDialogOpen(false);
-                                showAlert('No se pudo cancelar la reserva.', 'error');
-                            }
+                           handleDeleteReservation(pendingDeleteId);
                         }}
                         color="error"
                         variant="contained"
