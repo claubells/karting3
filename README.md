@@ -49,3 +49,12 @@
   – Tooltips sobre íconos o campos complejos.
   – Botón de “Ayuda” que abre una explicación.
   – FAQ o manual de uso en línea.
+
+
+SonarQube
+
+BACKEND:
+cmd /c "mvn clean verify sonar:sonar -DskipTests=true -Dsonar.projectKey=backend -Dsonar.projectName=backend -Dsonar.host.url=http://localhost:9000 -Dsonar.token=sqa_77ce388a2339ace6e8ee104e189adee1ad4ee4e5"
+
+FRONT: npx eslint . --ext .js,.jsx
+sonar-scanner
