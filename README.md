@@ -67,3 +67,8 @@ npx eslint . --ext .js,.jsx
 ```bat
 sonar-scanner
 ```
+
+Página:
+```bat
+http://localhost:9000
+```
