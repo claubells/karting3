@@ -51,10 +51,19 @@
   – FAQ o manual de uso en línea.
 
 
-SonarQube
-
+SonarQube:
+```bat
+cd C:\SonarQube\bin\windows-x86-64>
+StartSonar.bat
+```
 BACKEND:
+```bat
 cmd /c "mvn clean verify sonar:sonar -DskipTests=true -Dsonar.projectKey=backend -Dsonar.projectName=backend -Dsonar.host.url=http://localhost:9000 -Dsonar.token=sqa_77ce388a2339ace6e8ee104e189adee1ad4ee4e5"
-
-FRONT: npx eslint . --ext .js,.jsx
+```
+FRONT: 
+```bat
+npx eslint . --ext .js,.jsx
+```
+```bat
 sonar-scanner
+```
