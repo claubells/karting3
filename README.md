@@ -76,4 +76,8 @@ JMeter:
 ```bat
 start "" "C:\Tools\apache-jmeter-5.6.3\bin\jmeter.bat"
 ```
+
 ![Logo](logo.png)
+
+Formulario:
+[FORMULARIO DE SATISFACCIÓN] (https://forms.gle/iqLS8wxV65UGiRNF7)
