@@ -432,8 +432,18 @@ export default function ReservaCalendario() {
         navigate('/reservations-clients');
     };
 
+    useEffect(() => {
+        const fetchHolidays = async () => {
+            const holidaysFromBackend = await getHolidays();
+            setHolidayDates(holidaysFromBackend);
+        };
+        fetchHolidays();
+    }, []); 
+
     // Se obtiene la lista de reservas al cargar el componente
     useEffect(() => {
+        if (holidayDates.length === 0) return;
+
         const loadInitialData = async () => {
             try{
                 // *** HORARIOS ***
@@ -448,10 +458,6 @@ export default function ReservaCalendario() {
                         max: configFromBackend.specialHours.max,
                     },
                 });
-
-                // *** FERIADOS ***
-                const holidaysFromBackend = await getHolidays();
-                setHolidayDates(holidaysFromBackend);
                 
                 // *** RACK ***
                 const reservas = await getRackReservations();
@@ -479,15 +485,15 @@ export default function ReservaCalendario() {
                         }
 
                         const eventData = {
-                    id: r.idReservation,
+                            id: r.idReservation,
                             title: r.statusReservation === 'Pendiente' ? `⚠️ ${name}` : name,
                             rut: r.holdersReservation,
-                    start: `${r.dateReservation}T${r.startHourReservation}`,
-                    end: `${r.dateReservation}T${r.finalHourReservation}`,
-                    vueltas: r.turnsTimeReservation,
-                    group: r.groupSizeReservation,
-                    state: r.statusReservation,
-                    display: 'block',
+                            start: `${r.dateReservation}T${r.startHourReservation}`,
+                            end: `${r.dateReservation}T${r.finalHourReservation}`,
+                            vueltas: r.turnsTimeReservation,
+                            group: r.groupSizeReservation,
+                            state: r.statusReservation,
+                            display: 'block',
                         };
 
                         if (r.statusReservation === 'Pendiente') {
@@ -513,11 +519,10 @@ export default function ReservaCalendario() {
                 );
 
                 const locksHolidays = generateHolidayBlockings(
-                    holidaysFromBackend.map(date => ({ date })) 
+                    holidayDates.map(date => ({ date })) 
                 );
 
                 setEvents([
-                    ...generateWeekdayBlockings(holidayDates), 
                     ...generateWeekdayBlockings(holidayDates), 
                     ...monToFri, 
                     ...locksHolidays, 
@@ -686,7 +691,7 @@ export default function ReservaCalendario() {
                         eventClick={handleEventClick} // se puede hacer clic en una reserva
                         allDaySlot={false}
                         selectable={true}
-                        validRange={{ start: '2025-01-01', end: '2026-01-0'}}
+                        validRange={{ start: '2024-01-01', end: '2026-01-01'}}
                         editable={false} // no se pueden mover o redimensionar las reservas
                         eventResizableFromStart={false} // no se pueden redimensionar desde el inicio
                         select={handleDateSelect} // se puede hacer clic en un bloque horario

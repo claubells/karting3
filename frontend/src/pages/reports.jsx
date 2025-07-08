@@ -32,7 +32,7 @@ export default function Reports() {
         { value: '12', label: 'Diciembre' },
     ];
 
-    const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
+    const years = Array.from({ length: 2 }, (_, i) => new Date().getFullYear() - i);
 
     const generateReport = React.useCallback(async () => {
         try {
