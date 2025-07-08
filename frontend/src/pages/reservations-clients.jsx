@@ -344,7 +344,7 @@ export default function ReservationClients() {
                 <b>Hora final:</b> {reservationData1.finalHourReservation}
               </Typography>
               <Typography sx={{ fontSize: '1.2rem' }}>
-                <b>Número de vueltas:</b> {reservationData1.turnsTimeReservation}
+                <b>Número de vueltas o tiempo en minutos</b> (Lo que suceda primero): {reservationData1.turnsTimeReservation}
               </Typography>
             </CardContent>
           </Card>

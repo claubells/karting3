@@ -160,7 +160,7 @@ public class ReservationService {
         LocalTime finalHour = reservation.getFinalHourReservation();
 
         if(startHour.isAfter(finalHour)){
-            return false;
+            throw new BusinessValidationException("La hora de inicio es posterior a la final.");
         }
 
         // Verificar la duración entre las horas de inicio y final, con el número de vueltas (en minutos)
@@ -170,8 +170,8 @@ public class ReservationService {
         long durationMinutes = java.time.Duration.between(startHour, finalHour).toMinutes();
 
         // Verificar que la duración sea igual a la cantidad de turnos * duración de cada turno (por ejemplo, 10 minutos por vuelta)
-        if (durationMinutes != turns) {
-            return false; // La duración no coincide con el número de turnos
+        if (durationMinutes - 20 != turns) {
+            throw new BusinessValidationException("La hora inicial con la final no coinciden con la catidad del turno.");
         }
         // Obtener los horarios de atención desde la base de datos
         ReservationHourEntity reservationHour = reservationHourRepository.findFirstByOrderByIdAsc();

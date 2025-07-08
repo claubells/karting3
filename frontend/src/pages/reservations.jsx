@@ -651,18 +651,42 @@ export default function ReservaCalendario() {
             >
                 Calendario de Reservas
             </Typography>
-            <Typography
+            <Box sx={{ mb: 2 }}>
+                <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 'bold', display: 'inline', fontSize: '1.2rem' }}
+                >
+                    Bloques grises:
+                </Typography>
+                <Typography
+                    variant="body2"
+                    sx={{ display: 'inline', fontSize: '1.2rem' }}
+                >
+                    {' '}Fuera del horario de atención 🔒.
+                </Typography>
+                </Box>
+
+                <Box sx={{ mb: 2 }}>
+                <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 'bold', display: 'inline', fontSize: '1.2rem' }}
+                >
+                    Bloques blancos:
+                </Typography>
+                <Typography
+                    variant="body2"
+                    sx={{ display: 'inline', fontSize: '1.2rem' }}
+                >
+                    {' '}Horarios disponibles para reservar ✅.
+                </Typography>
+                </Box>
+
+                <Typography
                 variant="body2"
-                sx={{
-                    color: '#666',
-                    mb: 3,
-                    fontSize: '1.2rem'
-                }}
-            >
-                <b>Bloques grises</b>: Fura del horario de atención 🔒.<br />
-                <b>Bloques blancos</b>: Horarios disponibles para reservar ✅ .<br />
+                sx={{ fontSize: '1.2rem' }}
+                >
                 🖱️ Para agendar una reserva, haz clic directamente en los bloques blancos del calendario.
-            </Typography>
+                </Typography>
             <Box
                 sx={{
                     display: 'flex',
