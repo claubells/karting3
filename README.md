@@ -53,8 +53,8 @@
 
 SonarQube:
 ```bat
-cd C:\Tools\SonarQube\bin\windows-x86-64>
-StartSonar.bat
+cd "C:\Tools\SonarQube\bin\windows-x86-64\StartSonar.bat"
+
 ```
 BACKEND:
 ```bat
