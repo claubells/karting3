@@ -175,7 +175,7 @@ export default function ReservationClients() {
         for (const client of clients) {
             if (!client.registered) {
                 if (!client.rut || !client.name || !client.email || !client.birthdate) {
-                    alert('Por favor completa todos los campos de cada persona no registrada.');
+                    alert('Por favor completa todos los campos de cada piloto no registrado.');
                     return;
                 }
                 // Enviar RUT limpio al backend
@@ -201,12 +201,12 @@ export default function ReservationClients() {
         try {
             const groupSize = parseInt(numberPeople);
             if (isNaN(groupSize) || groupSize <= 0) {
-                alert('Cantidad de personas inválida.');
+                alert('Cantidad de pilotos inválida.');
                 return;
             }
 
             if (clients.length === 0) {
-                alert('No hay personas registradas para la reserva.');
+                alert('No hay pilotos registrados para la reserva.');
                 return;
             }
 
@@ -275,23 +275,23 @@ export default function ReservationClients() {
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 3 }}>
             <Stack direction="row" spacing={1} alignItems="center">
                 <Chip
-                    icon={<StepIcon sx={{ color: '#1976d2' }} />}
+                    icon={<StepIcon sx={{ color: '#ffffff' }} />}
                     label="Fecha y hora"
-                    size="small"
+                    size="big"
                     sx={{ bgcolor: '#e3f2fd', color: '#1976d2', fontWeight: 500 }}
                 />
                 <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#1976d2' }} />
                 <Chip
                     icon={<GroupIcon sx={{ color: '#43a047' }} />}
                     label="Clientes"
-                    size="small"
+                    size="big"
                     sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 700, border: '2px solid #43a047' }}
                 />
                 <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#43a047' }} />
                 <Chip
                     icon={<CheckCircleIcon sx={{ color: '#ff9800' }} />}
                     label="Confirmar y Pagar"
-                    size="small"
+                    size="big"
                     sx={{ bgcolor: '#fff3e0', color: '#f57c00', fontWeight: 700, border: '2px solid #ff9800' }}
                 />
             </Stack>
@@ -352,7 +352,7 @@ export default function ReservationClients() {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 3, minWidth: 508 }}
         >
             <FormControl fullWidth>
-                <InputLabel id="cantidad-label">Cantidad de personas</InputLabel>
+                <InputLabel id="cantidad-label">Cantidad de pilotos</InputLabel>
                 <Select
                     labelId="cantidad-label"
                     id="cantidad-personas"
@@ -362,7 +362,7 @@ export default function ReservationClients() {
                 >
                     {[...Array(15).keys()].map((n) => (
                         <MenuItem key={n + 1} value={n + 1}>
-                            {n + 1} persona{n + 1 > 1 ? 's' : ''}
+                            {n + 1} piloto{n + 1 > 1 ? 's' : ''}
                         </MenuItem>
                     ))}
                 </Select>
@@ -382,7 +382,7 @@ export default function ReservationClients() {
                             borderRadius: 1,
                         }}
                     >
-                        <Typography variant="subtitle1">Persona {index + 1}</Typography>
+                        <Typography variant="subtitle1">Piloto N° {index + 1}</Typography>
 
                         {index === 0 && (
                             <Chip

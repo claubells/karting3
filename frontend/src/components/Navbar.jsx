@@ -1,34 +1,36 @@
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { AppBar, Toolbar, Button, Box } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SpeedIcon from '@mui/icons-material/Speed';
 import HomeIcon from '@mui/icons-material/Home';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import logokart from '../assets/2.png';
 
 const Navbar = () => {
     return (
         <AppBar position="fixed" color="primary">
-            <Toolbar>
-                <Typography
-                    variant="h6"
+            <Toolbar sx={{ justifyContent: 'space-between' }}>
+                {/* Logo como imagen */}
+                <Box
                     component={RouterLink}
                     to="/home"
                     sx={{
-                        flexGrow: 1,
+                        display: 'inline-block',
+                        height: 48,
                         textDecoration: 'none',
-                        color: 'inherit',
                         cursor: 'pointer',
-                        fontWeight: 500,
-                        letterSpacing: 1,
-                        '&:hover': {
-                            color: '#90caf9',
+                        '&:hover img': {
+                            filter: 'brightness(1.2)',
                         },
-                        transition: 'color 0.2s',
                     }}
                 >
-                    Karting RM
-                </Typography>
+                    <img
+                        src={logokart}
+                        alt="Karting RM"
+                        style={{ height: '100%', objectFit: 'contain' }}
+                    />
+                </Box>
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button

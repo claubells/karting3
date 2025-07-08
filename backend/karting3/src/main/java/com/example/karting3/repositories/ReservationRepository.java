@@ -36,4 +36,6 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
         WHERE r.statusReservation = :statusReservation
     """)
     List<ReservationEntity> findByStatusReservation(@Param("statusReservation") String statusReservation);
+
+    List<ReservationEntity> findByDateReservation(LocalDate dateReservation);
 }

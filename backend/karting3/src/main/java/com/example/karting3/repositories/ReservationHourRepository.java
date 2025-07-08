@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ReservationHourRepository extends JpaRepository<ReservationHourEntity, Long> {
+
+    ReservationHourEntity findFirstByOrderByIdAsc();
 }

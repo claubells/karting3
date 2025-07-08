@@ -142,7 +142,7 @@ const Karts = () => {
                             >
                                 <CardContent>
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                        <DirectionsCarIcon sx={{ fontSize: 40, color: 'error.main', mr: 2 }} />
+                                        <DirectionsCarIcon sx={{ fontSize: 40, color: '#ea1d25', mr: 2 }} />
                                         <Typography variant="h6" component="div">
                                             {kart.modelKart}
                                         </Typography>

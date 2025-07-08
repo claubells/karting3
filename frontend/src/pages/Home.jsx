@@ -8,7 +8,6 @@ export default function Home() {
 
     // Carrusel de imágenes de fondo
     const images = [
-        '/imagenInicio.jpg',
         '/kart2.jpg',
         '/kart3.jpg',
         '/kart4.jpg',

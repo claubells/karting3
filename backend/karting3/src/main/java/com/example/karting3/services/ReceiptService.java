@@ -129,7 +129,7 @@ public class ReceiptService {
             ) {
                 byte[] pdfAdjunto = generarPdfRecibo(receipt);
                 sendReceiptWithPdf(emailClient, "Comprobante de Pago - Karting RM",
-                        "Adjunto encontrarás tu comprobante en formato PDF.", pdfAdjunto);
+                        "¡Muchas gracias por tu compra! Nos vemos en la pista.", pdfAdjunto);
             }else{
                 System.out.println("El Comprobante de pago no se pudo enviar x correo.");
             }

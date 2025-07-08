@@ -239,21 +239,21 @@ export default function ReservationSummary() {
                 <Chip
                     icon={<StepIcon sx={{ color: '#1976d2' }} />}
                     label="Fecha y hora"
-                    size="small"
+                    size="big"
                     sx={{ bgcolor: '#e3f2fd', color: '#1976d2', fontWeight: 500 }}
                 />
                 <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#1976d2' }} />
                 <Chip
                     icon={<GroupIcon sx={{ color: '#43a047' }} />}
                     label="Clientes"
-                    size="small"
+                    size="big"
                     sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 500 }}
                 />
                 <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#43a047' }} />
                 <Chip
                     icon={<CheckCircleIcon sx={{ color: '#ff9800' }} />}
                     label="Confirmar y Pagar"
-                    size="small"
+                    size="big"
                     sx={{ bgcolor: '#fff3e0', color: '#f57c00', fontWeight: 700, border: '2px solid #ff9800' }}
                 />
             </Stack>

@@ -40,7 +40,6 @@ public class ReservationService {
         this.reservationHourRepository = reservationHourRepository;
     }
 
-
     public List<ReservationEntity> findReservationBetweenDates(LocalDate fecha, LocalTime horaInicio, LocalTime horaFin) {
         return reservationRepository.findOverlappingReservations(fecha, horaInicio, horaFin);
     }
@@ -90,6 +89,10 @@ public class ReservationService {
             if (reservation.getClientIds() == null || reservation.getClientIds().isEmpty()) {
                 throw new BusinessValidationException("La reserva debe incluir al menos un cliente.");
             }
+            int vueltas = reservation.getTurnsTimeReservation();
+            if(vueltas != 10 && vueltas != 15 && vueltas != 20){
+                throw new BusinessValidationException("Número de vueltas invalido. La reserva debe tener 10, 15 o 20 vueltas/minutos.");
+            }
 
             // Obtenemos los karts disponibles
             List<KartEntity> disponibles = kartRepository.findAvailableKarts();
@@ -97,6 +100,16 @@ public class ReservationService {
             // verificamos disponibilidad
             if (disponibles.size() < numberPeople) {
                 throw new BusinessValidationException("No hay suficientes karts disponibles para esta reserva.");
+            }
+
+            // Validación de solapamiento de horario
+            if (isOtherReservationDate(reservation)) {
+                throw new BusinessValidationException("Ya existe una reserva en ese horario.");
+            }
+
+            // Validación de horario correcto
+            if (!isHourValid(reservation)) {
+                throw new BusinessValidationException("El horario de la reserva no es acorde a los horarios de atención.");
             }
 
             if(!fechaValida(reservation.getDateReservation(), reservation.getStartHourReservation(), reservation.getFinalHourReservation())) {
@@ -112,11 +125,6 @@ public class ReservationService {
             reservation.setKartIds(idsKartsAsignados);
             reservation.setStatusReservation("Pendiente");
 
-            System.out.println("Creando la reserva ");
-            System.out.println("Cliente titular: " + reservation.getHoldersReservation());
-            System.out.println("Client IDs: " + reservation.getClientIds());
-            System.out.println("Kart IDs: " + reservation.getKartIds());
-
             return reservationRepository.save(reservation);
         }
         catch(Exception e){
@@ -124,6 +132,73 @@ public class ReservationService {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    private boolean isOtherReservationDate(ReservationEntity reservation) {
+        // Obtener el inicio y fin de la nueva reserva
+        LocalDate reservationDate = reservation.getDateReservation();
+        LocalTime startHour = reservation.getStartHourReservation();
+        LocalTime finalHour = reservation.getFinalHourReservation();
+
+        // Obtener las reservas existentes para esa fecha
+        List<ReservationEntity> existingReservations = reservationRepository.findByDateReservation(reservationDate);
+
+        for (ReservationEntity existing : existingReservations) {
+            // Si la nueva reserva se solapa con una existente, retornamos true
+            if ((startHour.isBefore(existing.getFinalHourReservation()) && finalHour.isAfter(existing.getStartHourReservation())) ||
+                    (startHour.equals(existing.getStartHourReservation()) || finalHour.equals(existing.getFinalHourReservation()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isHourValid(ReservationEntity reservation){
+        // Obtener el inicio y fin de la nueva reserva
+        LocalDate reservationDate = reservation.getDateReservation();
+        LocalTime startHour = reservation.getStartHourReservation();
+        LocalTime finalHour = reservation.getFinalHourReservation();
+
+        if(startHour.isAfter(finalHour)){
+            return false;
+        }
+
+        // Verificar la duración entre las horas de inicio y final, con el número de vueltas (en minutos)
+        int turns = reservation.getTurnsTimeReservation();
+
+        // Calcular la diferencia entre las horas en minutos
+        long durationMinutes = java.time.Duration.between(startHour, finalHour).toMinutes();
+
+        // Verificar que la duración sea igual a la cantidad de turnos * duración de cada turno (por ejemplo, 10 minutos por vuelta)
+        if (durationMinutes != turns) {
+            return false; // La duración no coincide con el número de turnos
+        }
+        // Obtener los horarios de atención desde la base de datos
+        ReservationHourEntity reservationHour = reservationHourRepository.findFirstByOrderByIdAsc();
+
+        // Obtener los horarios de atención semanal y especial (fin de semana)
+        LocalTime weeklyStartHour = reservationHour.getWeeklyHourMin();
+        LocalTime weeklyEndHour = reservationHour.getWeeklyHourMax();
+
+        LocalTime specialStartHour = reservationHour.getSpecialHourMin();
+        LocalTime specialEndHour = reservationHour.getSpecialHourMax();
+
+        // Verificar si la reserva es en fin de semana (sabado o domingo)
+        DayOfWeek dayOfWeek = reservationDate.getDayOfWeek();
+        boolean isWeekend = (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY);
+
+        // Si es fin de semana, verificamos con los horarios especiales
+        if (isWeekend) {
+            return isTimeWithinRange(startHour, specialStartHour, specialEndHour) && isTimeWithinRange(finalHour, specialStartHour, specialEndHour);
+        } else {
+            // Si no es fin de semana, verificamos con los horarios semanales
+            return isTimeWithinRange(startHour, weeklyStartHour, weeklyEndHour) && isTimeWithinRange(finalHour, weeklyStartHour, weeklyEndHour);
+        }
+    }
+
+    // Método para verificar si una hora está dentro de un rango
+    private boolean isTimeWithinRange(LocalTime time, LocalTime start, LocalTime end) {
+        return !time.isBefore(start) && !time.isAfter(end);
     }
 
     public Boolean fechaValida(LocalDate date, LocalTime startHour, LocalTime finalHour){
