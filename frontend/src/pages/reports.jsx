@@ -207,7 +207,7 @@ export default function Reports() {
                                             <b>${reportData?.monthlyTotals?.[month.value]?.toLocaleString() || '0'}</b>
                                         </TableCell>
                                     ))}
-                                    <TableCell sx={{ color: '#fff', fontWeight: 500, backgroundColor: '#0d47a1' }}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: 500, backgroundColor: '#0d47a1' , fontSize: '1.2rem'  }}>
                                         <b>${reportData?.totalGlobal?.toLocaleString() || '0'}</b>
                                     </TableCell>
                                 </TableRow>
