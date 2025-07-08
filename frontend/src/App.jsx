@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Home, Karts, Karting, Reservations, ReservationsClients, ReservationSummary, Reports } from './pages';
+import { Home, Karts, Karting, Reservations, ReservationsClients, ReservationSummary, Reports, Faq} from './pages';
 import './App.css';
 import WithNavbar from './components/WithNavbar';
 import { useEffect } from 'react';
@@ -69,6 +69,14 @@ function AppContent() {
                 element={
                     <WithNavbar>
                         <Reports />
+                    </WithNavbar>
+                }
+            />
+            <Route
+                path="/faq"
+                element={
+                    <WithNavbar>
+                        <Faq />
                     </WithNavbar>
                 }
             />

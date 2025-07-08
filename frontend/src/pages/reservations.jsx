@@ -644,7 +644,7 @@ export default function ReservaCalendario() {
                 fontWeight="bold"
                 gutterBottom
                 sx={{
-                    color: '#ea1d25',
+                    color: 'error.main',
                     letterSpacing: 1,
                     textShadow: '0 2px 8px rgba(255, 23, 68, 0.08)'
                 }}
@@ -941,7 +941,7 @@ export default function ReservaCalendario() {
                             </Button>
                         <CardContent>
                             <Box display="flex" alignItems="center" mb={2}>
-                                <Avatar sx={{ bgcolor: '#ea1d25', mr: 2 }}>
+                                <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
                                     <PersonIcon sx={{ color: 'white' }} />
                                 </Avatar>
                                 <Box sx={{ textAlign: 'left' }}>
@@ -1129,8 +1129,8 @@ export default function ReservaCalendario() {
                                                             <span style={{ minWidth: 80, textAlign: 'right', marginLeft: 16, fontSize: '1.2rem' }}>${formatNumber(Math.round(r.ivaAmount))}</span>
                                                         </Box>
                                                         <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontWeight: 500, color: '#ea1d25', fontSize: '1.5rem'}}><b>Total:</b></span>
-                                                            <span style={{ fontWeight: 600, color: '#ea1d25', fontSize: '1.5rem', minWidth: 80, textAlign: 'right', marginLeft: 16 }}>${formatNumber(Math.round(r.totalAmount))}</span>
+                                                            <span style={{ fontWeight: 500, color: '#d84315', fontSize: '1.5rem'}}><b>Total:</b></span>
+                                                            <span style={{ fontWeight: 600, color: '#d84315', fontSize: '1.5rem', minWidth: 80, textAlign: 'right', marginLeft: 16 }}>${formatNumber(Math.round(r.totalAmount))}</span>
                                         </Box>
                                                     </CardContent>
                                                 </Card>

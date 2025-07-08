@@ -6,6 +6,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import HomeIcon from '@mui/icons-material/Home';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import logokart from '../assets/2.png';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const Navbar = () => {
     return (
@@ -88,6 +89,20 @@ const Navbar = () => {
                         }}
                     >
                         Inicio
+                    </Button>
+                    <Button
+                        color="inherit"
+                        component={RouterLink}
+                        to="/faq"
+                        startIcon={<HelpOutlineIcon />}
+                        sx={{
+                            transition: 'color 0.2s',
+                            '&:hover': {
+                                color: '#90caf9',
+                            },
+                        }}
+                    >
+                        Ayuda
                     </Button>
                     <Button
                         color="inherit"
