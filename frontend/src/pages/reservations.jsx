@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -32,7 +32,6 @@ import DialogActions from '@mui/material/DialogActions';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Estilos personalizados para los botones del calendario
@@ -164,7 +163,7 @@ export default function ReservaCalendario() {
     const calendarRef = useRef(null); // Nuevo ref para el calendario
     const [showScrollUp, setShowScrollUp] = useState(false);
 
-    const rutCache = {};
+    const rutCache = useRef({});
 
     const [formData, setFormData] = useState({
         fecha: '',
@@ -199,11 +198,14 @@ export default function ReservaCalendario() {
                         try {
                             const client = await getClientByRut(r.rutClientReceipt);
                             name = client.nameClient || r.rutClientReceipt;
-                        } catch {}
+                        } catch (err){
+                            console.error('Error obteniendo el cliente por RUT:', err);
+                        }
                         return { ...r, nameClient: name };
                     })
                 );
                 setReceipts(receiptsData);
+                console.log('Comprobantes obtenidos:', receipts);
                 setReceiptsWithNames(receiptsWithNames);
             }
             setShowReceipts(true);
@@ -464,16 +466,16 @@ export default function ReservaCalendario() {
                 await Promise.all(
                     reservas.map(async (r) => {
                         let name = r.holdersReservation;
-                        if (!rutCache[r.holdersReservation]) {
+                        if (!rutCache.current[r.holdersReservation]) {
                             try {
                                 const client = await getClientByRut(r.holdersReservation);
                                 name = client.nameClient || r.holdersReservation;
-                                rutCache[r.holdersReservation] = name;
+                                rutCache.current[r.holdersReservation] = name;
                             } catch {
-                                rutCache[r.holdersReservation] = r.holdersReservation;
+                                rutCache.current[r.holdersReservation] = r.holdersReservation;
                             }
                         } else {
-                            name = rutCache[r.holdersReservation];
+                            name = rutCache.current[r.holdersReservation];
                         }
 
                         const eventData = {
@@ -529,7 +531,7 @@ export default function ReservaCalendario() {
         };
 
         loadInitialData();
-    }, []);
+    }, [holidayDates]);
 
     // Detectar scroll para mostrar/ocultar la flecha
     useEffect(() => {
@@ -593,6 +595,8 @@ export default function ReservaCalendario() {
             setSimulatedReceipts([formattedReceipt]);
             setReceiptsWithNames([formattedReceipt]);
             setSpecialDaysDiscount(discount);
+            console.log('Comprobantes simulados: ', simulatedReceipts);
+            console.log('Descuento especial: ', specialDaysDiscount);
         } catch (error) {
             console.error('Error simulando los comprobantes:', error);
         }
@@ -619,7 +623,7 @@ export default function ReservaCalendario() {
             window.location.reload(); // Refresca la página
         } catch (error) {
             setConfirmDialogOpen(false);
-            showAlert('No se pudo cancelar la reserva.', 'error');
+            showAlert('No se pudo cancelar la reserva.', error);
         }
     };
 
@@ -635,9 +639,9 @@ export default function ReservaCalendario() {
                 fontWeight="bold"
                 gutterBottom
                 sx={{
-                    color: '#1976d2', // Azul Material-UI
+                    color: 'error.main',
                     letterSpacing: 1,
-                    textShadow: '0 2px 8px rgba(25, 118, 210, 0.08)'
+                    textShadow: '0 2px 8px rgba(255, 23, 68, 0.08)'
                 }}
             >
                 Calendario de Reservas
@@ -932,8 +936,8 @@ export default function ReservaCalendario() {
                             </Button>
                         <CardContent>
                             <Box display="flex" alignItems="center" mb={2}>
-                                <Avatar sx={{ bgcolor: '#1976d2', mr: 2 }}>
-                                    <PersonIcon />
+                                <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
+                                    <PersonIcon sx={{ color: 'white' }} />
                                 </Avatar>
                                 <Box sx={{ textAlign: 'left' }}>
                                     <Typography variant="h6" fontWeight="bold">
@@ -995,6 +999,7 @@ export default function ReservaCalendario() {
                                                     specialDaysDiscount = discountFromBackend;
                                                 }
                                             } catch (error) {
+                                                console.error('Error obteniendo descuento especial:', error);
                                                 specialDaysDiscount = 0;
                                             }
 
@@ -1011,7 +1016,7 @@ export default function ReservaCalendario() {
                                             showAlert('Pago confirmado y recibos creados.', 'success');
                                             window.location.reload();
                                         } catch (error) {
-                                            showAlert('Error al confirmar el pago.', 'error');
+                                            showAlert('Error al confirmar el pago.', error);
                                         }
                                     }}
                                     sx={{ fontSize: '1.1rem', py: 1.5 }}

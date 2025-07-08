@@ -20,6 +20,9 @@ public class DataLoader implements CommandLineRunner {
     private final HolidayRepository holidayRepository;
     private final BirthdayRepository birthdayRepository;
 
+    private static final String STATUS_AVAILABLE = "Available";
+    private static final String MODEL = "Sodikart RT8";
+
     public DataLoader(RatesLapsRepository ratesLapsRepository, KartRepository kartRepository, LoyaltyDiscountRepository loyaltyRepository, ReservationHourRepository reservationHourRepository, PeopleDiscountRepository peopleRepository, HolidayRepository holidayRepository, BirthdayRepository birthdayRepository) {
         this.ratesLapsRepository = ratesLapsRepository;
         this.kartRepository = kartRepository;
@@ -58,21 +61,21 @@ public class DataLoader implements CommandLineRunner {
     private void kartsLoad(){
         if (kartRepository.count() == 0) {
             List<KartEntity> karts = List.of(
-                    new KartEntity(null, "K001", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K002", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K003", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K004", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K005", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K006", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K007", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K008", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K009", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K010", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K011", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K012", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K013", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K014", "Sodikart RT8", "available"),
-                    new KartEntity(null, "K015", "Sodikart RT8", "available")
+                    new KartEntity(null, "K001", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K002", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K003", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K004", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K005", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K006", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K007", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K008", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K009", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K010", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K011", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K012", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K013", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K014", MODEL, STATUS_AVAILABLE),
+                    new KartEntity(null, "K015", MODEL, STATUS_AVAILABLE)
             );
             kartRepository.saveAll(karts);
             System.out.println("✅ Karts precargados.");
@@ -149,6 +152,7 @@ public class DataLoader implements CommandLineRunner {
                     new HolidayEntity(null, LocalDate.of(2025, 6, 29), "San Pedro y San Pablo", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 7, 16), "Virgen del Carmen", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 8, 15), "Asunción de la Virgen", 0.21),
+                    new HolidayEntity(null, LocalDate.of(2025, 8, 20), "Nacimiento del Prócer de la Independencia", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 9, 18), "Independencia Nacional", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 9, 19), "Glorias del Ejército", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 10, 12), "Encuentro de Dos Mundos", 0.21),
@@ -157,7 +161,8 @@ public class DataLoader implements CommandLineRunner {
                     new HolidayEntity(null, LocalDate.of(2025, 11, 16), "Elecciones Presidenciales y Parlamentarias", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 12, 8), "Inmaculada Concepción", 0.21),
                     new HolidayEntity(null, LocalDate.of(2025, 12, 14), "Elección Presidencial (Segunda Vuelta)", 0.21),
-                    new HolidayEntity(null, LocalDate.of(2025, 12, 25), "Navidad", 0.21)
+                    new HolidayEntity(null, LocalDate.of(2025, 12, 25), "Navidad", 0.21),
+                    new HolidayEntity(null, LocalDate.of(2025, 12, 31), "Feriado Bancario", 0.21)
             );
             holidayRepository.saveAll(feriados);
             System.out.println("✅ Feriados precargados en la base de datos.");

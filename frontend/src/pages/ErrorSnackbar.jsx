@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 
@@ -15,3 +16,9 @@ export default function ErrorSnackbar({ open, message, onClose }) {
     </Snackbar>
   );
 }
+
+ErrorSnackbar.propTypes = {
+  open: PropTypes.bool.isRequired,
+  message: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired,
+};

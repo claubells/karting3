@@ -11,7 +11,7 @@ import java.util.List;
 @Repository
 public interface KartRepository extends JpaRepository<KartEntity, Long> {
 
-    @Query("SELECT k FROM KartEntity k WHERE k.statusKart = 'available'")
+    @Query("SELECT k FROM KartEntity k WHERE k.statusKart = 'Available'")
     List<KartEntity> findAvailableKarts();
 
 }

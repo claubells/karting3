@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getAllKarts } from '../api/ratesApi';
 import {
     Container,
@@ -41,7 +41,7 @@ const Karts = () => {
             })
             .catch((err) => {
                 // sino
-                setError('Error con la base de datos al cargar los karts.');
+                setError('Error con la base de datos al cargar los karts.', err);
                 setLoading(false); // deja de cargar
             });
     }, []); // [] significa que solo se ejecuta una vez al cargar el componente
@@ -142,7 +142,7 @@ const Karts = () => {
                             >
                                 <CardContent>
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                        <DirectionsCarIcon sx={{ fontSize: 40, color: '#2196f3', mr: 2 }} />
+                                        <DirectionsCarIcon sx={{ fontSize: 40, color: 'error.main', mr: 2 }} />
                                         <Typography variant="h6" component="div">
                                             {kart.modelKart}
                                         </Typography>
@@ -159,7 +159,7 @@ const Karts = () => {
                                         <SettingsIcon sx={{ color: '#90caf9', mr: 1 }} />
                                         <Chip
                                             label={kart.statusKart}
-                                            color={kart.statusKart.toLowerCase() === 'disponible' ? 'success' : 'warning'}
+                                            color={['disponible', 'available'].includes(kart.statusKart.toLowerCase()) ? 'success' : 'warning'}
                                             size="small"
                                             sx={{ borderRadius: 1 }}
                                         />

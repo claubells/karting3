@@ -1,6 +1,6 @@
-import React, { useEffect, useState} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Box, Typography, TextField, Card, CardContent, Stack, Alert, Snackbar, CircularProgress, Modal } from '@mui/material';
+import { Button, Box, Typography, TextField, Card, CardContent, Stack, Snackbar, CircularProgress, Chip } from '@mui/material';
 import { getReservationById, createReceipt, simulateReceipt, getReceiptsByReservationId, deleteReservationById } from '../api/reservationApi';
 import { getDiscount } from '../api/specialdayApi';
 import { getClientById } from '../api/loyaltyApi';
@@ -15,13 +15,15 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import MuiAlert from '@mui/material/Alert';
+import StepIcon from '@mui/icons-material/LooksOne';
+import GroupIcon from '@mui/icons-material/Group';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 // Función para formatear números con separadores de miles
 const formatNumber = (num) => {
     return Number(num).toLocaleString('es-CL');
 };
-
-
 
 export default function ReservationSummary() {
 
@@ -113,7 +115,7 @@ export default function ReservationSummary() {
         
         };
         loadInitialData();
-    }, []);
+    }, [navigate]);
 
     // se carga el descuento guardado si existe
     useEffect(() => {
@@ -126,14 +128,7 @@ export default function ReservationSummary() {
         localStorage.setItem('specialDaysDiscount', specialDaysDiscount.toString());
     }, [specialDaysDiscount]);
 
-    // se simulan los recibos cada vez que cambia la reserva o la lista de clientes
-    useEffect(() => {
-        if (reservationData && clientList.length > 0) {
-            simulateAllReceipts();
-        }
-    }, [reservationData, clientList]);
-
-    const simulateAllReceipts = async () => {
+    const simulateAllReceipts = useCallback(async () => {
         try {
             if (!reservationData || clientList.length === 0 || specialDaysDiscount === null) return;
 
@@ -156,20 +151,14 @@ export default function ReservationSummary() {
         } catch (error) {
             console.error('Error simulando los recibos:', error);
         }
-    };
+    }, [reservationData, clientList, specialDaysDiscount]);
 
-    function isSpecialDay(date) {
-        const day = new Date(date).getDay(); // 0 = domingo, 6 = sábado
-        return day === 0 || day === 6 || isHoliday(date);
-    }
-    
-    function isHoliday(date) {
-        const feriados = [
-            '2025-04-18', '2025-04-19', '2025-05-01', '2025-05-21',
-        ];
-        const dateStr = new Date(date).toISOString().split('T')[0];
-        return feriados.includes(dateStr);
-    }
+    // se simulan los recibos cada vez que cambia la reserva o la lista de clientes
+    useEffect(() => {
+        if (reservationData && clientList.length > 0) {
+            simulateAllReceipts();
+        }
+    }, [reservationData, clientList, specialDaysDiscount, simulateAllReceipts]);
 
     // 3 aquí se crea la reserva
     async function handleSubmitReservation(){
@@ -189,7 +178,7 @@ export default function ReservationSummary() {
                     continue; // o return si quieres cortar el proceso
                 }
 
-                showAlert(`Enviando comprobante de ${client.nameClient || 'cliente sin nombre'} ...`, 'info');
+                showAlert(`Enviando comprobante de ${client.nameClient || 'cliente sin nombre'}...`, 'info');
 
                 await createReceipt({
                     rutClientReceipt: client.rutClient,
@@ -202,6 +191,7 @@ export default function ReservationSummary() {
 
             const receiptsData = await getReceiptsByReservationId(reservationData.idReservation);
             setReceipts(receiptsData);
+            console.log("Comprobantes creados:", receipts);
 
             localStorage.removeItem('specialDaysDiscountSet');
             localStorage.setItem('postSuccessMessage', '✅ Reserva y comprobantes creados correctamente.');
@@ -214,7 +204,7 @@ export default function ReservationSummary() {
         } catch (error) {
             setLoading(false);
             setLoading(false);
-            showAlert('No se pudo confirmar la reserva. Intenta nuevamente.', 'error');
+            showAlert('No se pudo confirmar la reserva. Intenta nuevamente.', error);
         }
     }
 
@@ -243,6 +233,31 @@ export default function ReservationSummary() {
                 <CircularProgress size={80} />
             </Box>
         )}
+        {/* Pasos de la reserva */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 3 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+                <Chip
+                    icon={<StepIcon sx={{ color: '#1976d2' }} />}
+                    label="Fecha y hora"
+                    size="small"
+                    sx={{ bgcolor: '#e3f2fd', color: '#1976d2', fontWeight: 500 }}
+                />
+                <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#1976d2' }} />
+                <Chip
+                    icon={<GroupIcon sx={{ color: '#43a047' }} />}
+                    label="Clientes"
+                    size="small"
+                    sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 500 }}
+                />
+                <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#43a047' }} />
+                <Chip
+                    icon={<CheckCircleIcon sx={{ color: '#ff9800' }} />}
+                    label="Confirmar y Pagar"
+                    size="small"
+                    sx={{ bgcolor: '#fff3e0', color: '#f57c00', fontWeight: 700, border: '2px solid #ff9800' }}
+                />
+            </Stack>
+        </Box>
         <Box p={4}>
             <Card
                 sx={{
@@ -477,7 +492,7 @@ export default function ReservationSummary() {
                                 navigate('/reservations');
                             } catch (error) {
                                 setConfirmDialogOpen(false);
-                                showAlert('No se pudo cancelar la reserva.', 'error');
+                                showAlert('No se pudo cancelar la reserva.', error);
                             }
                         }}
                         color="error"

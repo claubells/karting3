@@ -3,13 +3,13 @@ package com.example.karting3.services;
 import com.example.karting3.entities.KartEntity;
 import com.example.karting3.entities.ReservationEntity;
 import com.example.karting3.entities.ReservationHourEntity;
+import com.example.karting3.exception.BusinessValidationException;
 import com.example.karting3.repositories.KartRepository;
 import com.example.karting3.repositories.ReceiptRepository;
 import com.example.karting3.repositories.ReservationHourRepository;
 import com.example.karting3.repositories.ReservationRepository;
 import com.example.karting3.dto.RackReservationDTO;
 import com.example.karting3.dto.ReservationMiniDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -23,17 +23,22 @@ import java.util.stream.Collectors;
 @Service
 public class ReservationService {
 
-    @Autowired
-    private ReservationRepository reservationRepository;
+    private final ReservationRepository reservationRepository;
+    private final ReceiptRepository receiptRepository;
+    private final KartRepository kartRepository;
+    private final ReservationHourRepository reservationHourRepository;
 
-    @Autowired
-    private ReceiptRepository receiptRepository;
-
-    @Autowired
-    private KartRepository kartRepository;
-
-    @Autowired
-    private ReservationHourRepository reservationHourRepository;
+    public ReservationService(
+            ReservationRepository reservationRepository,
+            ReceiptRepository receiptRepository,
+            KartRepository kartRepository,
+            ReservationHourRepository reservationHourRepository
+    ) {
+        this.reservationRepository = reservationRepository;
+        this.receiptRepository = receiptRepository;
+        this.kartRepository = kartRepository;
+        this.reservationHourRepository = reservationHourRepository;
+    }
 
 
     public List<ReservationEntity> findReservationBetweenDates(LocalDate fecha, LocalTime horaInicio, LocalTime horaFin) {
@@ -83,7 +88,7 @@ public class ReservationService {
 
             // Validar que vengan los clientes
             if (reservation.getClientIds() == null || reservation.getClientIds().isEmpty()) {
-                throw new RuntimeException("La reserva debe incluir al menos un cliente.");
+                throw new BusinessValidationException("La reserva debe incluir al menos un cliente.");
             }
 
             // Obtenemos los karts disponibles
@@ -91,18 +96,18 @@ public class ReservationService {
 
             // verificamos disponibilidad
             if (disponibles.size() < numberPeople) {
-                throw new RuntimeException("No hay suficientes karts disponibles para esta reserva.");
+                throw new BusinessValidationException("No hay suficientes karts disponibles para esta reserva.");
             }
 
             if(!fechaValida(reservation.getDateReservation(), reservation.getStartHourReservation(), reservation.getFinalHourReservation())) {
-                throw new RuntimeException("La fecha de la reserva debe ser de hoy en adelante para máximo el 31 de de diciembre de este año.");
+                throw new BusinessValidationException("La fecha de la reserva debe ser de hoy en adelante para máximo el 31 de de diciembre de este año.");
             }
 
             //asignamos los karts disponibles
             List<Long> idsKartsAsignados = disponibles.subList(0, numberPeople)
                     .stream()
                     .map(KartEntity::getIdKart)
-                    .collect(Collectors.toList());; // pq aun no se hace el receipt
+                    .collect(Collectors.toList()); // pq aun no se hace el receipt
 
             reservation.setKartIds(idsKartsAsignados);
             reservation.setStatusReservation("Pendiente");

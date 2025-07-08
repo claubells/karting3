@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Select,
     MenuItem,
@@ -15,11 +15,16 @@ import {
     DialogTitle,
     DialogContent,
     DialogContentText,
-    DialogActions
+    DialogActions,
+    Stack
 } from '@mui/material';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import StarIcon from '@mui/icons-material/Star';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import StepIcon from '@mui/icons-material/LooksOne';
+import GroupIcon from '@mui/icons-material/Group';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { createReservation} from '../api/reservationApi';
 import { checkClientExists, createClient, getClientByRut } from '../api/loyaltyApi';
 import { useNavigate } from 'react-router-dom';
@@ -266,6 +271,31 @@ export default function ReservationClients() {
 
     return (
         <>
+        {/* Pasos de la reserva */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 3 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+                <Chip
+                    icon={<StepIcon sx={{ color: '#1976d2' }} />}
+                    label="Fecha y hora"
+                    size="small"
+                    sx={{ bgcolor: '#e3f2fd', color: '#1976d2', fontWeight: 500 }}
+                />
+                <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#1976d2' }} />
+                <Chip
+                    icon={<GroupIcon sx={{ color: '#43a047' }} />}
+                    label="Clientes"
+                    size="small"
+                    sx={{ bgcolor: '#e8f5e9', color: '#388e3c', fontWeight: 700, border: '2px solid #43a047' }}
+                />
+                <ArrowForwardIosIcon sx={{ fontSize: 16, color: '#43a047' }} />
+                <Chip
+                    icon={<CheckCircleIcon sx={{ color: '#ff9800' }} />}
+                    label="Confirmar y Pagar"
+                    size="small"
+                    sx={{ bgcolor: '#fff3e0', color: '#f57c00', fontWeight: 700, border: '2px solid #ff9800' }}
+                />
+            </Stack>
+        </Box>
         {/* Botón Volver atrás, debajo de la navbar */}
         <Box sx={{ mt: 2, mb: 2, display: 'flex', justifyContent: 'flex-start', maxWidth: 700, mx: 'auto' }}>
           <Button

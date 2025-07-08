@@ -4,7 +4,6 @@ import { Typography, Table, TableBody, TableCell, TableContainer, TableHead, Tab
 import { getReportByTurnsByMonth } from '../api/reportApi';
 
 export default function Reports() {
-    const [value, setValue] = React.useState('one');
     const [selectedYear, setSelectedYear] = React.useState(new Date().getFullYear());
     const [selectedMonthFrom, setSelectedMonthFrom] = React.useState('01');
     const [selectedMonthTo, setSelectedMonthTo] = React.useState('12');
@@ -17,10 +16,6 @@ export default function Reports() {
         totalGlobal: 0,
         monthlyTotals: {},
     });
-
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
-    };
 
     const months = [
         { value: '01', label: 'Enero' },
@@ -39,10 +34,9 @@ export default function Reports() {
 
     const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
 
-    async function generateReport() {
+    const generateReport = React.useCallback(async () => {
         try {
             const turns = await getReportByTurnsByMonth(selectedYear, selectedMonthFrom, selectedMonthTo);
-
             setReportData({
                 turns: turns.turns || {
                     10: {},
@@ -55,11 +49,11 @@ export default function Reports() {
         } catch (error) {
             console.error('Error al obtener datos del reporte:', error);
         }
-    }
+    }, [selectedYear, selectedMonthFrom, selectedMonthTo]);
 
     React.useEffect(() => {
         generateReport();
-    }, [selectedYear, selectedMonthFrom, selectedMonthTo]);
+    }, [generateReport]);
 
     const handleGenerateReport = () => {
         generateReport();
@@ -93,8 +87,8 @@ export default function Reports() {
                     mt: 1,
                     background: 'linear-gradient(45deg, #2196f3 30%, #64b5f6 90%)',
                     borderRadius: 2,
-                    maxWidth: '1400px',
-                    minWidth: '1460px',
+                    maxWidth: '1456px',
+                    minWidth: '1430px',
                     mx: 'auto',
                     textAlign: 'center'
                 }}
@@ -161,6 +155,7 @@ export default function Reports() {
 
                     <Button 
                         variant="contained" 
+                        color="error"
                         onClick={handleGenerateReport}
                         sx={{ height: 56, fontSize: '1.1rem' } }
                     >

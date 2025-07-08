@@ -12,7 +12,6 @@ export async function checkClientExists(rutClient, handleError) {
             if (handleError) handleError(error);
             return { exists: false }; 
         }
-        return;
     }
 }
 
@@ -55,7 +54,7 @@ export async function getClientById(id) {
         const response = await httpClient.get(`/client/id/${id}`);
         return response.data;
     } catch (error) {
-        console.error(`Error al obtener cliente con rut ${rut}:`, error);
+        console.error(`Error al obtener cliente`, error);
         throw error;
     }
 }

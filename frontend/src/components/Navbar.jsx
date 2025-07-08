@@ -1,5 +1,4 @@
-import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box, Link } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
