@@ -70,3 +70,10 @@ sonar-scanner
 
 Página:
 [http://localhost:9000](http://localhost:9000)
+
+
+JMeter:
+```bat
+start "" "C:\Tools\apache-jmeter-5.6.3\bin\jmeter.bat"
+```
+![Logo](logo.png)
