@@ -659,7 +659,9 @@ export default function ReservaCalendario() {
                     fontSize: '1.2rem'
                 }}
             >
-                💡 Haz clic sobre cualquier reserva para ver sus detalles
+                <b>Bloques grises</b>: Fura del horario de atención 🔒.<br />
+                <b>Bloques blancos</b>: Horarios disponibles para reservar ✅ .<br />
+                🖱️ Para agendar una reserva, haz clic directamente en los bloques blancos del calendario.
             </Typography>
             <Box
                 sx={{
@@ -903,7 +905,7 @@ export default function ReservaCalendario() {
                             fontSize: '1.2rem'
                         }}
                     >
-                        📅 ¡Haz clic sobre el calendario para agendar tu reserva!
+                        📅 ¡Haz clic sobre los bloques disponibles en el calendario para agendar tu reserva!
                     </Typography>
 
                 </Box>

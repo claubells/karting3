@@ -8,10 +8,16 @@ import InfoIcon from '@mui/icons-material/Info';
 
 const faqs = [
   {
+    id: "faq_horarios",
+    icon: <AccessTimeIcon color="primary" />, 
+    q: "¿Cuáles son los horarios de atención?",
+    a: "De lunes a viernes el horario es de 14:00 a 22:00 horas. Sábados y domingos de 10:00 a 22:00 horas."
+  },
+  {
     id: "faq_participantes",
     icon: <GroupIcon color="primary" />, 
-    q: "¿Cuántos pilotos pueden participar en una reserva?",
-    a: "Puedes reservar para entre 1 y 15 pilotos."
+    q: "Si arriendo para mi grupo de amigos ¿En la pista estaremos con más personas?",
+    a: "No, ya que al arrendar los karts se reserva la pista exclusivamente para tu grupo."
   },
   {
     id: "faq_modelo_karts",
@@ -128,7 +134,7 @@ const FAQ = () => (
               <ListItemIcon sx={{ minWidth: 40 }}>{faq.icon}</ListItemIcon>
               <ListItemText
                 primary={<Typography variant="subtitle1" fontWeight={600} fontSize="1.3rem">{faq.q}</Typography>}
-                secondary={<Typography variant="body1" color="text.secondary">{faq.a}</Typography>}
+                secondary={<Typography variant="body1" color="text.secondary" fontSize="1.2rem">{faq.a}</Typography>}
               />
             </ListItem>
           ))}

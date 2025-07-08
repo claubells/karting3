@@ -29,7 +29,10 @@ import { createReservation} from '../api/reservationApi';
 import { checkClientExists, createClient, getClientByRut } from '../api/loyaltyApi';
 import { useNavigate } from 'react-router-dom';
 import ErrorSnackbar from './ErrorSnackbar';
-
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { es } from 'date-fns/locale';
 
 // Función para formatear RUT con puntos y guión (formato visual)
 const formatRut = (rut) => {
@@ -410,27 +413,42 @@ export default function ReservationClients() {
                         />
                         <TextField
                             label="Nombre"
+                            placeholder='Ej: Juan Pérez'
                             value={client.name}
                             onChange={(e) => handleClientChange(index, 'name', e.target.value)}
-                            disabled={client.registered}
                             required
+                            slotProps={{input: { readOnly: client.registered,} }}
                         />
                         <TextField
                             label="Email"
+                            placeholder='Ej: ejemplo@dominio.com'
                             value={client.email}
                             onChange={(e) => handleClientChange(index, 'email', e.target.value)}
-                            disabled={client.registered}
                             required
+                            slotProps={{input: { readOnly: client.registered,} }}
                         />
-                        <TextField
-                            label="Fecha de nacimiento"
-                            type="date"
-                            value={client.birthdate}
-                            onChange={(e) => handleClientChange(index, 'birthdate', e.target.value)}
-                            disabled={client.registered}
-                            required
-                            slotProps={{ inputLabel: { shrink: true } }}
-                        />
+                        
+                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                            <DatePicker
+                                label="Fecha de nacimiento"
+                                value={client.birthdate ? new Date(client.birthdate) : null}
+                                onChange={(newDate) => {
+                                    const iso = newDate?.toISOString().split('T')[0] || '';
+                                    handleClientChange(index, 'birthdate', iso);
+                                }}
+                                disabled={client.registered}
+                                slotProps={{
+                                    textField: {
+                                        required: true,
+                                        fullWidth: true,
+                                        InputLabelProps: { shrink: true },
+                                        inputProps: {
+                                            placeholder: 'dd/mm/aaaa',
+                                        },
+                                    },
+                                }}
+                            />
+                        </LocalizationProvider>
                         {/*  Mensaje si está registrado */}
                         {client.registered && (
                             <Typography variant="body2" sx={{ color: '#4caf50', mt: 1 }}>
