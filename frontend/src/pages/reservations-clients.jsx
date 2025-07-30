@@ -442,9 +442,6 @@ export default function ReservationClients() {
                                         required: true,
                                         fullWidth: true,
                                         InputLabelProps: { shrink: true },
-                                        inputProps: {
-                                            placeholder: 'dd/mm/aaaa',
-                                        },
                                     },
                                 }}
                             />
